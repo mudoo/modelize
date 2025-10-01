@@ -1,0 +1,68 @@
+{
+  "name": "modelize-ts",
+  "version": "1.0.0",
+  "description": "一个 TypeScript 数据模型工具库，用于定义、解析、转换和操作数据模型。支持字段映射、类型转换、模型扩展等功能。",
+  "main": "dist/cjs/index.js",
+  "module": "dist/esm/index.js",
+  "scripts": {
+    "dev": "father dev",
+    "build": "father build",
+    "build:deps": "father prebundle",
+    "test": "cross-env TS_NODE_PROJECT='test/tsconfig.test.json' mocha test/**/**.test.ts",
+    "cover": "nyc --reporter=html npm run test",
+    "lint": "eslint --ext .js,.ts --fix src test",
+    "prepublishOnly": "father doctor && npm run build"
+  },
+  "mocha": {
+    "require": [
+      "ts-node/register",
+      "tsconfig-paths/register"
+    ],
+    "ui": "bdd"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/mudoo/modelize.git"
+  },
+  "keywords": [
+    "typescript",
+    "model",
+    "data-model",
+    "mapper",
+    "parser",
+    "converter"
+  ],
+  "authors": [
+    "mudoo <mudoo@qq.com>"
+  ],
+  "license": "MIT",
+  "files": [
+    "dist",
+    "compiled"
+  ],
+  "publishConfig": {
+    "access": "public"
+  },
+  "devDependencies": {
+    "@types/chai": "^5.2.2",
+    "@types/mocha": "^10.0.10",
+    "@types/node": "^24.5.2",
+    "@typescript-eslint/eslint-plugin": "^8.52.0",
+    "@typescript-eslint/parser": "^8.52.0",
+    "chai": "^6.0.1",
+    "cross-env": "^10.0.0",
+    "eslint": "^8.57.1",
+    "eslint-config-standard": "^17.1.0",
+    "eslint-plugin-import": "^2.32.0",
+    "eslint-plugin-n": "^17.23.1",
+    "eslint-plugin-promise": "^7.2.1",
+    "father": "^4.6.6",
+    "mocha": "^11.7.2",
+    "nyc": "^17.1.0",
+    "ts-node": "^10.9.2",
+    "tsconfig-paths": "^4.2.0"
+  },
+  "dependencies": {
+    "enum-plus": "^3.1.6"
+  }
+}
