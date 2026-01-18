@@ -7,6 +7,7 @@ import type {
   MapToResult,
   MapToType,
   IModel,
+  NormalizedMap,
   ModelConstructor,
   ModelData,
   ModelMap,
@@ -28,14 +29,8 @@ export const Constructs: ModelConstructor[] = [String, Number, Boolean, Array, O
  * 通用数据模型类，用于定义、解析、转换和操作数据模型。
  *
  * @typeParam T - 模型定义的 Map 类型，描述模型的字段及其映射关系。
- * @typeParam D - 由 T 映射得到的类型，默认为 MapToType<T>。
- *
- * 主要功能包括：
- * - 定义模型结构和字段映射
- * - 继承、扩展、选择、或省略模型字段
- * - 解析数据为模型实例，支持 getter/setter、自定义解析
- * - 支持数据的更新、合并、属性赋值、清空、克隆等操作
- * - 支持将模型数据转换为服务端格式
+ * @typeParam D - 由 T 映射得到的模型类型 MapToType<T>。
+ * @typeParam S - 由 T 映射得到的元数据类型 MapToResult<T>。
  *
  * @example
  * 用法示例：
@@ -49,6 +44,9 @@ export const Constructs: ModelConstructor[] = [String, Number, Boolean, Array, O
  *     model: Number,
  *   }
  * });
+ *
+ * type UserVO = typeof userModel.type;
+ * type UserDTO = typeof userModel.rawType;
  *
  * const user = userModel.parse({ user_id: 1, name: 'Tom', age: 18 });
  * const serverData = userModel.toServer(user);
@@ -92,13 +90,13 @@ export class Model<T extends ModelMap, D extends MapToType<T> = MapToType<T>, S 
   /**
    * 解析模型配置Map
    * @param {ModelMap} map 模型选项
-   * @returns {ModelMap}
+   * @returns 标准化模型定义Map
    */
-  private static parseModelMap<M extends ModelMap> (map?: ModelMap): MapToType<M> {
-    map = Object.assign({}, map)
+  private static parseModelMap<M extends ModelMap> (map: M): NormalizedMap<M> {
+    const res = Object.assign({}, map) as any
 
-    Object.keys(map).forEach((key) => {
-      let mapItem = map[key] as MapItem
+    Object.keys(res).forEach((key) => {
+      let mapItem = res[key] as MapItem
       const type = typeof mapItem
 
       if (type === 'string' || type === 'number') {
@@ -106,7 +104,7 @@ export class Model<T extends ModelMap, D extends MapToType<T> = MapToType<T>, S 
         mapItem = {
           key: mapItem as unknown as string,
         } as MapItem
-        map[key] = mapItem
+        res[key] = mapItem
       } else if (
         Array.isArray(mapItem) ||
         type === 'function' ||
@@ -118,7 +116,7 @@ export class Model<T extends ModelMap, D extends MapToType<T> = MapToType<T>, S 
           key,
           model: mapItem,
         } as MapItem
-        map[key] = mapItem
+        res[key] = mapItem
       }
 
       if (!mapItem.key && !mapItem.get) {
@@ -126,7 +124,7 @@ export class Model<T extends ModelMap, D extends MapToType<T> = MapToType<T>, S 
       }
     })
 
-    return map as MapToType<M>
+    return res
   }
   //////////////////////////////////////////////////
 
@@ -134,7 +132,7 @@ export class Model<T extends ModelMap, D extends MapToType<T> = MapToType<T>, S 
   declare readonly rawType: S
   /** 无任何值，仅用于提取模型类型：type TestVO = typeof TestModel.type */
   declare readonly type: D
-  readonly map: T = {} as T
+  readonly map: NormalizedMap<T> = {} as any
   readonly option: ModelOption = {}
   private readonly $enum: Record<string, any> = {}
 
@@ -144,7 +142,7 @@ export class Model<T extends ModelMap, D extends MapToType<T> = MapToType<T>, S 
    * @param options 模型选项
    */
   constructor (map: T, opt?: ModelOption) {
-    this.map = Model.parseModelMap(map) as T
+    this.map = Model.parseModelMap(map)
     this.option = Model.parseModelOptions(opt)
   }
 
@@ -216,7 +214,7 @@ export class Model<T extends ModelMap, D extends MapToType<T> = MapToType<T>, S 
   ): Model<Omit<Pick<T, K>, keyof M> & M>
 
   pickExtends<K extends keyof T, const M extends ModelMap> (keys: K[], map?: M, opt?: ModelOption): any {
-    const picked = {} as Pick<T, K>
+    const picked = {} as any
     for (const key of keys) {
       if (key in this.map) {
         picked[key] = this.map[key]

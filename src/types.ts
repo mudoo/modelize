@@ -7,7 +7,7 @@ export interface IModel<T extends ModelMap, D extends MapToType<T> = MapToType<T
   /** 模型类型 */
   readonly type: D;
   /** 模型字段映射 */
-  readonly map: T;
+  readonly map: NormalizedMap<T>;
   /** 模型选项 */
   readonly option: ModelOption;
 }
@@ -71,7 +71,12 @@ export interface MapItem {
 }
 
 /** 模型定义Map */
-export type ModelMap = Record<string, string | MapItem>
+export type ModelMap = Record<string, string | number | MapItem>
+
+/** 标准化后的模型定义Map */
+export type NormalizedMap<T extends ModelMap> = {
+  [K in keyof T]: MapItem
+}
 
 /** 模型数据 */
 export type ModelData = Record<string, any>
