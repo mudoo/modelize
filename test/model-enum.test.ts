@@ -19,12 +19,12 @@ const testRules = {
         },
       })
 
-      const data = ExtendedUser.enum('testEnum')
+      const testEnum = ExtendedUser.enum('testEnum')
       return (
-        data.a === 'a1' && data.label('a') === 'a' && data.label('a1') === 'a' &&
-        data.b === 1 && data.label('b') === 'b' && data.label(1) === 'b' &&
-        data.c === true && data.label('c') === 'c' && data.label(true) === 'c' &&
-        data.d === false && data.label('d') === 'd' && data.label(false) === 'd'
+        testEnum.a === 'a1' && testEnum.label('a') === 'a' && testEnum.label('a1') === 'a' &&
+        testEnum.b === 1 && testEnum.label('b') === 'b' && testEnum.label(1) === 'b' &&
+        testEnum.c === true && testEnum.label('c') === 'c' && testEnum.label(true) === 'c' &&
+        testEnum.d === false && testEnum.label('d') === 'd' && testEnum.label(false) === 'd'
       )
     },
     result: true,
@@ -55,12 +55,12 @@ const testRules = {
         },
       })
 
-      const data = ExtendedUser.enum('testEnum')
+      const testEnum = ExtendedUser.enum('testEnum')
       return (
-        data.a === 'a1' && data.label('a') === 'A' && data.label('a1') === 'A' &&
-        data.b === 1 && data.label('b') === 'B' && data.label(1) === 'B' &&
-        data.c === true && data.label('c') === 'C' && data.label(true) === 'C' &&
-        data.d === false && data.label('d') === 'D' && data.label(false) === 'D'
+        testEnum.a === 'a1' && testEnum.label('a') === 'A' && testEnum.label('a1') === 'A' &&
+        testEnum.b === 1 && testEnum.label('b') === 'B' && testEnum.label(1) === 'B' &&
+        testEnum.c === true && testEnum.label('c') === 'C' && testEnum.label(true) === 'C' &&
+        testEnum.d === false && testEnum.label('d') === 'D' && testEnum.label(false) === 'D'
       )
     },
     result: true,
@@ -79,12 +79,12 @@ const testRules = {
         },
       })
 
-      const data = ExtendedUser.enum('testEnum')
+      const testEnum = ExtendedUser.enum('testEnum')
       return (
-        data.a === 'a1' && data.label('a') === 'A' && data.label('a1') === 'A' &&
-        data.b === 1 && data.label('b') === 'B' && data.label(1) === 'B' &&
-        data.c === true && data.label('c') === 'C' && data.label(true) === 'C' &&
-        data.d === false && data.label('d') === 'D' && data.label(false) === 'D'
+        testEnum.a === 'a1' && testEnum.label('a') === 'A' && testEnum.label('a1') === 'A' &&
+        testEnum.b === 1 && testEnum.label('b') === 'B' && testEnum.label(1) === 'B' &&
+        testEnum.c === true && testEnum.label('c') === 'C' && testEnum.label(true) === 'C' &&
+        testEnum.d === false && testEnum.label('d') === 'D' && testEnum.label(false) === 'D'
       )
     },
   }],

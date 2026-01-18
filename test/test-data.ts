@@ -66,7 +66,7 @@ export const UserModel = UserBaseModel.extends({
   // default可以是个函数(key,value,data)。注意：Array/Object类型数据，务必使用工厂函数生成
   friends: {
     key: 'friends_list',
-    // 也可以这样定义数组: Array(Model)
+    // 也可以这样定义数组: [Model]
     model: [FriendModel],
     default () {
       return []

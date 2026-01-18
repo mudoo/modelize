@@ -407,11 +407,11 @@ export class Model<T extends ModelMap, D extends MapToType<T> = MapToType<T>, S 
   }
 
   /**
-   * 清空数据，某些情况下无法使用new来重新设置个模型，只能清空模型数据
+   * 清空数据
    *
    * @param target 数据源
    * @param all 是否清除所有属性，包含非模型属性
-   * @param useModel 是否清除所有属性，包含非模型属性
+   * @param useModel 是否使用模型进行重新赋值，默认false
    * @returns
    */
   clear (target: ModelData, all?: boolean, useModel?: boolean): D {

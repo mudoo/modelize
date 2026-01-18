@@ -2,15 +2,6 @@
 
 一个 TypeScript 数据模型工具库，用于定义、解析、转换和操作数据模型。支持字段映射、类型转换、模型扩展等功能。
 
-## 特性
-
-- 🎯 **字段映射**：轻松映射服务端字段与前端模型
-- 🔄 **类型转换**：自动类型转换和验证
-- 🧩 **模型扩展**：支持模型继承和字段选择
-- 📦 **嵌套模型**：支持嵌套对象和数组模型
-- 🎨 **自定义处理**：支持自定义 parse 和 convert 函数
-- 🔧 **辅助函数**：提供 JSON、数组分割、布尔值转换等工具函数
-
 ## 安装
 
 ```bash
@@ -49,7 +40,9 @@ const UserModel = Model.define({
   },
 });
 
+// 模型类型
 type UserVO = typeof UserModel.type;
+// 源数据类型
 type UserDTO = typeof UserModel.rawType;
 ```
 
