@@ -10,7 +10,7 @@
     "build:deps": "father prebundle",
     "test": "cross-env TS_NODE_PROJECT='test/tsconfig.test.json' mocha test/**/**.test.ts",
     "cover": "nyc --reporter=html npm run test",
-    "lint": "eslint --ext .js,.ts --fix src test",
+    "lint": "tsc --noEmit&eslint --ext .js,.ts --fix src test",
     "prepublishOnly": "father doctor && npm run build"
   },
   "mocha": {
@@ -60,7 +60,8 @@
     "mocha": "^11.7.2",
     "nyc": "^17.1.0",
     "ts-node": "^10.9.2",
-    "tsconfig-paths": "^4.2.0"
+    "tsconfig-paths": "^4.2.0",
+    "typescript": "^5.9.3"
   },
   "dependencies": {
     "enum-plus": "^3.1.6"

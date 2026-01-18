@@ -1,5 +1,6 @@
 import Model from '../src/model'
 import test from './test'
+import { UserModel } from './test-data'
 
 // 单元测试
 const testRules = {
@@ -31,7 +32,7 @@ const testRules = {
   }, {
     title: 'object enum',
     handler () {
-      const ExtendedUser = Model.define({
+      const ExtendedUser = UserModel.extends({
         testEnum: {
           key: 'test_enum',
           enum: {

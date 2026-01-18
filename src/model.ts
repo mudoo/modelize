@@ -692,7 +692,7 @@ export class Model<T extends ModelMap, D extends MapToType<T> = MapToType<T>, S 
     if (this.$enum[key]) return this.$enum[key]
     const cfg = this.map[key]
 
-    if (typeof cfg === 'string' || !cfg.enum) return undefined as never
+    if (typeof cfg === 'string' || !(cfg as MapItem).enum) return undefined as never
 
     // @ts-expect-error: 枚举类型
     this.$enum[key] = Enum(cfg.enum)

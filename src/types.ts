@@ -75,7 +75,7 @@ export type ModelMap = Record<string, string | number | MapItem>
 
 /** 标准化后的模型定义Map */
 export type NormalizedMap<T extends ModelMap> = {
-  [K in keyof T]: MapItem
+  [K in keyof T]: T[K] extends string | number ? { key: T[K] } : T[K]
 }
 
 /** 模型数据 */
