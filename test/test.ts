@@ -41,7 +41,7 @@ export default function test (testRules: TestRules) {
           }
           if (result === undefined) result = true
 
-          const title = (rule.title || k + '-' + i) + ` => ${JSON.stringify(result)}`
+          const title = (rule.title || k + '-' + i) + ` | ${JSON.stringify(result)}`
 
           it(title, function () {
             assert.equal(value, result)

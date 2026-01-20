@@ -83,7 +83,7 @@ export const UserModel = UserBaseModel.extends({
     },
   },
 
-  // 支持parse/convert进行数据互转，实例化时parse解析，转为服务端数据时convert转换回去
+  // 支持parse/convert进行数据互转，实例化时parse解析，转为源数据时convert转换回去
   birthday: {
     key: 'birth_day',
     parse (value): number {

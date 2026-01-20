@@ -9,11 +9,11 @@ const testRules = {
     title: 'pick',
     handler () {
       const picked = UserModel.pick(user, ['name', 'gender'])
-      const pickedServer = UserModel.pick(user, ['name', 'gender'], true)
+      const pickedRaw = UserModel.pick(user, ['name', 'gender'], true)
       return picked.name === '张三' &&
              picked.gender === 1 &&
-             pickedServer.user_name === '张三' &&
-             pickedServer.user_gender === 1
+             pickedRaw.user_name === '张三' &&
+             pickedRaw.user_gender === 1
     },
     result: true,
   }, {
@@ -133,9 +133,9 @@ const testRules = {
       return !user2.name && user2.friends.length === 0
     },
   }, {
-    title: 'toServer',
+    title: 'toRaw',
     handler () {
-      const data = UserModel.toServer(user, {
+      const data = UserModel.toRaw(user, {
         wealth: 100,
       })
       const bestFriend = data.best_friend
@@ -150,8 +150,8 @@ const testRules = {
         wealth: 100,
       }
       const convertData = JSON.stringify(UserModel.convert(user, data))
-      const convertToServerData = JSON.stringify(UserModel.toServer(user, data))
-      return convertData === convertToServerData
+      const converttoRawData = JSON.stringify(UserModel.toRaw(user, data))
+      return convertData === converttoRawData
     },
     result: true,
   }, {
@@ -166,7 +166,7 @@ const testRules = {
     },
     result: '{"id":456,"name":"张三丰","gender":1,"genderName":"男"}',
   }, {
-    title: 'pick toServer',
+    title: 'pick toRaw',
     handler () {
       return JSON.stringify(UserModel.pick(user, [
         'id',
@@ -188,7 +188,7 @@ const testRules = {
     },
     result: '{"id":456,"name":"张三丰","gender":1,"wealth":20,"friendCount":2,"birthday":795196800000}',
   }, {
-    title: 'omit toServer',
+    title: 'omit toRaw',
     handler () {
       return JSON.stringify(UserModel.omit(user, [
         'bestFriend',

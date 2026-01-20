@@ -18,7 +18,7 @@ const testRules = {
           user_config: sourceConfig,
           user_config2: sourceConfig,
         })
-        const dto = TestModel.toServer(data)
+        const dto = TestModel.toRaw(data)
 
         return (
           data.config.theme === 'dark' &&
@@ -41,7 +41,7 @@ const testRules = {
         const data = TestModel.parse({
           user_config: sourceConfig,
         })
-        const dto = TestModel.toServer(data)
+        const dto = TestModel.toRaw(data)
 
         return (
           data.config.theme === 'light' &&
@@ -61,7 +61,7 @@ const testRules = {
         const data = TestModel.parse({
           user_config: sourceConfig,
         })
-        const dto = TestModel.toServer(data)
+        const dto = TestModel.toRaw(data)
 
         return (
           Array.isArray(data.config) &&
@@ -112,7 +112,7 @@ const testRules = {
         const data = TestModel.parse({
           user_config: sourceData,
         })
-        const dto = TestModel.toServer(data)
+        const dto = TestModel.toRaw(data)
 
         return (
           data.config.a === 1 && data.config.d === 0 && data.config.e === '' &&
@@ -137,7 +137,7 @@ const testRules = {
           user_tags: sourceTags,
           user_tags2: sourceTags,
         })
-        const dto = TestModel.toServer(data)
+        const dto = TestModel.toRaw(data)
 
         return (
           Array.isArray(data.tags) &&
@@ -158,7 +158,7 @@ const testRules = {
         const data = TestModel.parse({
           user_tags: sourceTags,
         })
-        const dto = TestModel.toServer(data)
+        const dto = TestModel.toRaw(data)
 
         return (
           Array.isArray(data.tags) &&
@@ -197,7 +197,7 @@ const testRules = {
           is_active: 1,
           is_active2: true,
         })
-        const dto = TestModel.toServer(data)
+        const dto = TestModel.toRaw(data)
         return dto.is_active === 1 && dto.is_active2 === 1
       },
       result: true,

@@ -49,7 +49,7 @@ export const Constructs: ModelConstructor[] = [String, Number, Boolean, Array, O
  * type UserDTO = typeof userModel.rawType;
  *
  * const user = userModel.parse({ user_id: 1, name: 'Tom', age: 18 });
- * const serverData = userModel.toServer(user);
+ * const rawData = userModel.toRaw(user);
  * ```
  */
 export class Model<T extends ModelMap, D extends MapToType<T> = MapToType<T>, S extends MapToResult<T> = MapToResult<T>> implements IModel<T, D> {
@@ -75,7 +75,7 @@ export class Model<T extends ModelMap, D extends MapToType<T> = MapToType<T>, S 
   private static parseModelOptions (options?: ModelOption) {
     options = Object.assign(
       {
-        autoParse: true,
+        parseToModel: true,
         handler: 'update',
       },
       options,
@@ -293,7 +293,7 @@ export class Model<T extends ModelMap, D extends MapToType<T> = MapToType<T>, S 
   }
 
   /**
-   * 解析数据（服务器字段）
+   * 解析数据（源数据字段）
    *
    * @param data 数据
    * @param options 操作选项
@@ -341,7 +341,7 @@ export class Model<T extends ModelMap, D extends MapToType<T> = MapToType<T>, S 
   }
 
   /**
-   * 更新数据（服务端字段名）
+   * 更新数据（源数据字段名）
    *
    * @param target 数据源
    * @param data 更新数据
@@ -483,17 +483,14 @@ export class Model<T extends ModelMap, D extends MapToType<T> = MapToType<T>, S 
     }
 
     // 使用默认值
-    if (value == null) {
-      const autoParse = cfg.autoParse ?? opt.autoParse
-      if (cfg.default != null || cfg.optional || !autoParse) {
-        if (typeof cfg.default === 'function') {
-          value = cfg.default.call(target, field, value, data, cfg)
-        } else {
-          value = cfg.default
-        }
-        target[field] = value
-        return target as D
+    if (value == null && (cfg.default != null || cfg.optional || !opt.parseToModel)) {
+      if (typeof cfg.default === 'function') {
+        value = cfg.default.call(target, field, value, data, cfg)
+      } else {
+        value = cfg.default
       }
+      target[field] = value
+      return target as D
     }
 
     const model = cfg.model as ModelConstructor
@@ -542,7 +539,7 @@ export class Model<T extends ModelMap, D extends MapToType<T> = MapToType<T>, S 
   }
 
   /**
-   * 将field数据转为服务器接收格式
+   * 将field数据转为源数据接收格式
    * @param target 数据源
    * @param field 数据字段
    * @param value 数值，未传默认取当前实例中的field值
@@ -552,20 +549,20 @@ export class Model<T extends ModelMap, D extends MapToType<T> = MapToType<T>, S 
     const cfg = (this.map[field] || {}) as MapItem
     if (value == null) value = target[field]
 
-    if (cfg.convert) {
+    if (cfg.convert != null) {
+      if (!cfg.convert) return
       return cfg.convert.call(target, value, field, cfg)
     }
 
-    const autoConvert = cfg.autoConvert ?? this.option.autoConvert
     const modelIsArray = Array.isArray(cfg.model)
     const model = (modelIsArray ? (cfg.model as ModelConstructor[])[0] : cfg.model) as ModelConstructor
     const isModel = model && model instanceof Model
 
     if (!modelIsArray) {
       if (value && isModel) {
-        return model.toServer(value)
+        return model.toRaw(value)
       } else {
-        return autoConvert ? this.parseValueToModel(model, value) : value
+        return this.option.convertToModel ? this.parseValueToModel(model, value) : value
       }
     }
 
@@ -576,9 +573,9 @@ export class Model<T extends ModelMap, D extends MapToType<T> = MapToType<T>, S 
     }
     return value.map((item: any) => {
       if (item && isModel) {
-        return model.toServer(item)
+        return model.toRaw(item)
       }
-      return autoConvert ? this.parseValueToModel(model, item) : item
+      return this.option.convertToModel ? this.parseValueToModel(model, item) : item
     })
   }
 
@@ -613,13 +610,13 @@ export class Model<T extends ModelMap, D extends MapToType<T> = MapToType<T>, S 
   }
 
   /**
-   * 转换为服务端数据
+   * 转换为源数据
    *
    * @param target 数据源
    * @param mergeData 合并数据
    * @returns
    */
-  toServer (target: ModelData, mergeData: ModelData = {}): S {
+  convert (target: ModelData, mergeData: ModelData = {}): S {
     const data = {} as any
     Object.keys(this.map).forEach((k) => {
       const cfg = (this.map[k] || {}) as MapItem
@@ -631,27 +628,28 @@ export class Model<T extends ModelMap, D extends MapToType<T> = MapToType<T>, S 
   }
 
   /**
-   * 转换为服务端数据，toServer别名
+   * 转换为源数据，convert别名
    */
-  convert = this.toServer
+  toRaw = this.convert
+  toDto = this.convert
 
   /**
    * 获取模型属性
    * @param target 数据源
    * @param keys 属性列表
-   * @param toServer 是否转换为服务端字段
+   * @param toRaw 是否转换为源数据字段
    * @returns 选择后的对象
    */
   pick<K extends keyof D>(target: ModelData, keys: K[]): Pick<D, K>
-  pick<K extends keyof D>(target: ModelData, keys: K[], toServer: false): Pick<D, K>
-  pick<K extends keyof T>(target: ModelData, keys: K[], toServer: true): MapToResult<Pick<T, K>>
-  pick<K extends keyof D> (target: ModelData, keys: K[], toServer: boolean = false): any {
+  pick<K extends keyof D>(target: ModelData, keys: K[], toRaw: false): Pick<D, K>
+  pick<K extends keyof T>(target: ModelData, keys: K[], toRaw: true): MapToResult<Pick<T, K>>
+  pick<K extends keyof D> (target: ModelData, keys: K[], toRaw: boolean = false): any {
     const data = {} as any
 
     keys.forEach((key) => {
       const cfg = (this.map[key as string] || {}) as MapItem
-      const k = toServer ? cfg.key || key : key
-      data[k] = toServer ? this.convertField(target, key as string) : target[key as string]
+      const k = toRaw ? cfg.key || key : key
+      data[k] = toRaw ? this.convertField(target, key as string) : target[key as string]
     })
 
     return data
@@ -661,13 +659,13 @@ export class Model<T extends ModelMap, D extends MapToType<T> = MapToType<T>, S 
    * 排除模型属性
    * @param target 数据源
    * @param keys 属性列表
-   * @param toServer 是否转换为服务端字段
+   * @param toRaw 是否转换为源数据字段
    * @returns 选择后的对象
    */
   omit<K extends keyof D>(target: ModelData, keys: K[]): Omit<D, K>
-  omit<K extends keyof D>(target: ModelData, keys: K[], toServer: false): Omit<D, K>
-  omit<K extends keyof T>(target: ModelData, keys: K[], toServer: true): MapToResult<Omit<T, K>>
-  omit<K extends keyof D> (target: ModelData, keys: K[], toServer: boolean = false): any {
+  omit<K extends keyof D>(target: ModelData, keys: K[], toRaw: false): Omit<D, K>
+  omit<K extends keyof T>(target: ModelData, keys: K[], toRaw: true): MapToResult<Omit<T, K>>
+  omit<K extends keyof D> (target: ModelData, keys: K[], toRaw: boolean = false): any {
     const data = {} as any
 
     Object.keys(this.map).forEach((key) => {
@@ -675,8 +673,8 @@ export class Model<T extends ModelMap, D extends MapToType<T> = MapToType<T>, S 
 
       const cfg = (this.map[key] || {}) as MapItem
       if (cfg.get && !cfg.key) return
-      const k = toServer ? cfg.key || key : key
-      data[k] = toServer ? this.convertField(target, key as string) : target[key as string]
+      const k = toRaw ? cfg.key || key : key
+      data[k] = toRaw ? this.convertField(target, key as string) : target[key as string]
     })
 
     return data

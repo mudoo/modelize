@@ -14,31 +14,9 @@ const testRules = {
     },
     result: '{"name":"","gender":0,"wealth":0,"tags":[],"categories":[],"friends":[],"bestFriend":{"name":"","gender":0},"friendCount":0}',
   }, {
-    title: 'field cfg: autoParse',
+    title: 'Model.parse({}, { parseToModel = false })',
     handler () {
-      const UserModel2 = UserBaseModel.extends({
-        age: {
-          model: Number,
-          autoParse: false,
-        },
-      })
-
-      const user2 = UserModel2.parse({
-        user_id: 2,
-        user_name: '帅小伙',
-        user_gender: 1,
-      })
-
-      return user2.id === 2 &&
-             user2.name === '帅小伙' &&
-             user2.gender === 1 &&
-             user2.age === undefined
-    },
-    result: true,
-  }, {
-    title: 'Model.parse({}, { autoParse = false })',
-    handler () {
-      return JSON.stringify(UserModel.parse({}, { autoParse: false }))
+      return JSON.stringify(UserModel.parse({}, { parseToModel: false }))
     },
     result: '{"name":"","friends":[],"friendCount":0}',
   }, {
@@ -146,6 +124,7 @@ const testRules = {
         category: {
           model: CategoryModel,
           optional: true,
+          convert: false,
         },
       })
 
@@ -155,7 +134,7 @@ const testRules = {
     },
     result: true,
   }, {
-    title: 'autoParse/autoConvert',
+    title: 'parseToModel=false',
     handler () {
       const UserModel2 = UserBaseModel.extends({
         age: {
@@ -165,18 +144,13 @@ const testRules = {
         age2: {
           key: 'user_age2',
           model: Number,
-          autoParse: true,
-          autoConvert: false,
         },
         age3: {
           key: 'user_age3',
           model: Number,
-          autoParse: false,
-          autoConvert: false,
         },
       }, {
-        autoParse: false,
-        autoConvert: true,
+        parseToModel: false,
       })
 
       const user2 = UserModel2.parse({
@@ -186,10 +160,43 @@ const testRules = {
         user_age2: '19',
       })
 
-      const userData2 = UserModel2.toServer(user2)
+      const userData2 = UserModel2.toRaw(user2)
 
       return user2.age === undefined && user2.age2 === 19 && user2.age3 === undefined &&
-             userData2.user_age === 0 && userData2.user_age2 === 19 && userData2.user_age3 === undefined
+             userData2.user_age === undefined && userData2.user_age2 === 19 && userData2.user_age3 === undefined
+    },
+    result: true,
+  }, {
+    title: 'convertToModel=true',
+    handler () {
+      const UserModel2 = UserBaseModel.extends({
+        age: {
+          key: 'user_age',
+          model: Number,
+        },
+        age2: {
+          key: 'user_age2',
+          model: Number,
+        },
+        age3: {
+          key: 'user_age3',
+          model: Number,
+        },
+      }, {
+        convertToModel: true,
+      })
+
+      const user2 = UserModel2.parse({
+        user_id: 2,
+        user_name: '帅小伙',
+        user_gender: 1,
+        user_age2: '19',
+      })
+
+      const userData2 = UserModel2.toRaw(user2)
+
+      return user2.age === 0 && user2.age2 === 19 && user2.age3 === 0 &&
+             userData2.user_age === 0 && userData2.user_age2 === 19 && userData2.user_age3 === 0
     },
     result: true,
   }, {

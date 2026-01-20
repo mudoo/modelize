@@ -48,24 +48,14 @@ export interface MapItem {
   default?: ((key: string, value: any, data: any, field: string) => any) | any
   /** 实例化前解析数据(update调用) */
   parse?: (this: any, value: any, data: any, field: string, cfg: MapItem) => any
-  /** 转为服务端字段时候调用，convert(value, field)，false则toServer时不赋值 */
-  convert?: (this: any, value: any, field: string, cfg: MapItem) => any | boolean
+  /** 转为源数据字段时候调用，convert(value, field)，false则toRaw时不赋值 */
+  convert?: ((this: any, value: any, field: string, cfg: MapItem) => any) | false
   /** 字段是否可选，值可能为undefined，若为true且需默认值，请配合 default或parse 使用 */
   optional?: boolean
-  /** 解析时是否自动转成模型数据，优先级高于模型选项 */
-  autoParse?: boolean
-  /** 转换为服务端数据时，是否自动转成模型数据 */
-  autoConvert?: boolean
   /** 配置getter */
   get?: (this: any) => any
   /** 配置setter */
   set?: (this: any, val: any) => void
-  /** 是否可配置 (getter/setter选项) */
-  configurable?: boolean
-  /** 是否可枚举，默认true (getter/setter选项) */
-  enumerable?: boolean
-  /** 是否可写入 (getter/setter选项) */
-  writable?: boolean
   /** 枚举值，支持enum推导 */
   enum?: Record<string, string | number | EnumItem> | EnumListItem[]
 }
@@ -87,9 +77,9 @@ export type ModelData = Record<string, any>
 export interface ModelOption {
   [key: string]: any
   /** 解析时是否自动转成模型数据，为空或数据类型不匹配时，将自动转为指定模型数据。若明确设置了default，为空时依然使用default值。默认true */
-  autoParse?: boolean
-  /** 转换为服务端数据时，是否自动转成模型数据。默认false */
-  autoConvert?: boolean
+  parseToModel?: boolean
+  /** 转换为源数据时，是否自动转成模型格式数据。默认false */
+  convertToModel?: boolean
   /** 实例化时所使用的数据赋值方法，支持update、merge、attr。默认update */
   handler?: 'update' | 'merge' | 'attr'
   /**
@@ -255,20 +245,21 @@ export type EnumList<
 
 /** 枚举方法返回类型 */
 export type ReturnEnum<T> =
-  T extends { enum: infer E } ?
-    E extends Record<string, any>[] ?
-      EnumList<E> :
-    E extends Record<string, any> ?
-      EnumType<E> :
-    never
-  : never
+  T extends { enum: infer E }
+    ? E extends Record<string, any>[]
+      ? EnumList<E>
+      : E extends Record<string, any>
+        ? EnumType<E>
+        : never
+    : never;
 
-export type DeepPartial<T, Depth extends number = 3> = [Depth] extends [never]
-  ? T
-  : T extends object
-  ? T extends IModel<any>
-    ? DeepPartial<T['type'], PrevDepth[Depth]>
-    : { [K in keyof T]?: DeepPartial<T[K], PrevDepth[Depth]> }
-  : T;
+export type DeepPartial<T, Depth extends number = 3> =
+  [Depth] extends [never]
+    ? T
+    : T extends object
+      ? T extends IModel<any>
+        ? DeepPartial<T['type'], PrevDepth[Depth]>
+        : { [K in keyof T]?: DeepPartial<T[K], PrevDepth[Depth]> }
+      : T;
 
 type PrevDepth = [never, 0, 1, 2, 3];

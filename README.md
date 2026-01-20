@@ -49,7 +49,7 @@ type UserDTO = typeof UserModel.rawType;
 ### 解析数据
 
 ```typescript
-// 解析服务端数据
+// 解析源数据
 const user = UserModel.parse({
   user_id: 123,
   user_name: '张三',
@@ -69,16 +69,16 @@ const users = UserModel.parseList([
 ]);
 ```
 
-### 转换为服务端格式
+### 转换为源数据格式
 
 ```typescript
-// 将模型数据转换回服务端格式
-const serverData = UserModel.toServer(user);
-console.log(serverData);
+// 将模型数据转换回源数据格式
+const rawData = UserModel.toRaw(user);
+console.log(rawData);
 // { user_id: 123, user_name: '张三', user_gender: 1, user_tags: ['前端', 'TypeScript'] }
 
 // 可以在转换时合并额外数据
-const serverData2 = UserModel.toServer(user, {
+const rawData2 = UserModel.toRaw(user, {
   extra_field: 'value',
 });
 ```
@@ -226,7 +226,7 @@ console.log(StatusEnum.label(1));         // '活跃'
 ### 数据操作
 
 ```typescript
-// update - 使用服务端格式更新数据
+// update - 使用源数据格式更新数据
 UserModel.update(user, {
   user_name: '新名字',
   user_gender: 2,
@@ -261,15 +261,15 @@ const cloned = UserModel.clone(user);
 const picked = UserModel.pick(user, ['id', 'name', 'gender']);
 // { id: 123, name: '张三', gender: 1 }
 
-// pick 转为服务端格式
-const pickedServer = UserModel.pick(user, ['id', 'name'], true);
+// pick 转为源数据格式
+const pickedRaw = UserModel.pick(user, ['id', 'name'], true);
 // { user_id: 123, user_name: '张三' }
 
 // omit - 排除指定字段
 const omitted = UserModel.omit(user, ['tags', 'categories']);
 
-// omit 转为服务端格式
-const omittedServer = UserModel.omit(user, ['tags'], true);
+// omit 转为源数据格式
+const omittedRaw = UserModel.omit(user, ['tags'], true);
 ```
 
 ## 配置选项
@@ -278,27 +278,22 @@ const omittedServer = UserModel.omit(user, ['tags'], true);
 
 | 参数 | 类型 | 说明 |
 |------|------|------|
-| `key` | `string` | 服务端字段名 |
+| `key` | `string` | 源字段名 |
 | `model` | `Constructor` | 数据类型（String/Number/Boolean/Array/自定义Model） |
 | `default` | `any \| Function` | 默认值或默认值生成函数 |
 | `parse` | `Function` | 解析函数，用于自定义数据解析逻辑 |
-| `convert` | `Function` | 转换函数，用于转换为服务端数据 |
+| `convert` | `Function` | 转换函数，用于转换为源数据 |
 | `optional` | `boolean` | 是否可选，为 true 时值可能为 undefined |
-| `autoParse` | `boolean` | 是否自动解析为模型数据，默认 true |
-| `autoConvert` | `boolean` | 转换为服务端数据时是否自动转换，默认 false |
 | `get` | `Function` | Getter 函数 |
 | `set` | `Function` | Setter 函数 |
-| `enumerable` | `boolean` | 是否可枚举，默认 true |
-| `configurable` | `boolean` | 是否可配置 |
-| `writable` | `boolean` | 是否可写入 |
 | `enum` | `Object \| Array` | 枚举值定义 |
 
 ### 模型选项
 
 | 参数 | 类型 | 说明 |
 |------|------|------|
-| `autoParse` | `boolean` | 解析时是否自动转为模型数据，默认 true |
-| `autoConvert` | `boolean` | 转换时是否自动转换为服务端数据，默认 false |
+| `parseToModel` | `boolean` | 解析时是否自动转成模型数据，为空或数据类型不匹配时，将自动转为指定模型数据。若明确设置了default，为空时依然使用default值。默认true |
+| `convertToModel` | `boolean` | 转换为源数据时，是否自动转成模型格式数据。默认false |
 | `handler` | `'update' \| 'merge' \| 'attr'` | 实例化时的数据赋值方法，默认 'update' |
 | `onBeforeUpdate` | `Function` | 更新前的数据预处理函数 |
 | `onDataChange` | `Function` | 数据更新后的回调函数 |
@@ -323,8 +318,8 @@ const user = UserModel.parse({
 console.log(user.profile); // { hobby: '编程', age: 25 }
 
 // 转换时自动将对象转为 JSON 字符串
-const serverData = UserModel.toServer(user);
-console.log(serverData.user_profile); // '{"hobby":"编程","age":25}'
+const rawData = UserModel.toRaw(user);
+console.log(rawData.user_profile); // '{"hobby":"编程","age":25}'
 ```
 
 ### splitField - 字符串分割
@@ -345,8 +340,8 @@ const user = UserModel.parse({
 console.log(user.tags); // ['JavaScript', 'TypeScript', 'Node.js']
 
 // 转换时自动将数组连接为字符串
-const serverData = UserModel.toServer(user);
-console.log(serverData.user_tags); // 'JavaScript,TypeScript,Node.js'
+const rawData = UserModel.toRaw(user);
+console.log(rawData.user_tags); // 'JavaScript,TypeScript,Node.js'
 ```
 
 ### bool2intField - 布尔值转数字
@@ -367,27 +362,8 @@ const user = UserModel.parse({
 console.log(user.isActive); // true
 
 // 转换时将布尔值转为 1/0
-const serverData = UserModel.toServer(user);
-console.log(serverData.is_active); // 1
-```
-
-## 开发
-
-```bash
-# 安装依赖
-npm install
-
-# 构建
-npm run build
-
-# 运行测试
-npm test
-
-# 生成测试覆盖率报告
-npm run cover
-
-# 代码规范检查
-npm run lint
+const rawData = UserModel.toRaw(user);
+console.log(rawData.is_active); // 1
 ```
 
 ## License
