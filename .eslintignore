@@ -1,4 +1,7 @@
 dist
+es/
+lib/
+umd/
 node_modules
 bower_modules
 *.html

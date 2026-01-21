@@ -1,10 +1,12 @@
 import { defineConfig } from 'father';
 
 export default defineConfig({
-  esm: { input: 'src/', output: 'dist/esm/' },
-  cjs: { input: 'src/', output: 'dist/cjs/' },
-  umd: { output: 'dist/' },
+  esm: { input: 'src/', output: 'es/' },
+  // cjs: { input: 'src/', output: 'lib/' },
+  umd: { output: 'umd/' },
   prebundle: {
     deps: {}
   },
+  sourcemap: true,
+  targets: { chrome: 80 },
 });

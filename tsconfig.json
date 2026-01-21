@@ -1,8 +1,13 @@
 {
   "compilerOptions": {
+    "target": "ES2016",
+    "module": "NodeNext",
+    "moduleResolution": "NodeNext",
+    "lib": ["ES2016", "DOM"],
     "strict": true,
     "declaration": true,
     "skipLibCheck": true,
-    "baseUrl": "./"
+    "baseUrl": "./",
+    "sourceMap": true,
   }
 }
