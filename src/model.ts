@@ -30,7 +30,7 @@ export const Constructs: ModelConstructor[] = [String, Number, Boolean, Array, O
  *
  * @typeParam T - 模型定义的 Map 类型，描述模型的字段及其映射关系。
  * @typeParam D - 由 T 映射得到的模型类型 MapToType<T>。
- * @typeParam S - 由 T 映射得到的元数据类型 MapToResult<T>。
+ * @typeParam S - 由 T 映射得到的源数据类型 MapToResult<T>。
  *
  * @example
  * 用法示例：
@@ -558,6 +558,11 @@ export class Model<T extends ModelMap, D extends MapToType<T> = MapToType<T>, S 
     const model = (modelIsArray ? (cfg.model as ModelConstructor[])[0] : cfg.model) as ModelConstructor
     const isModel = model && model instanceof Model
 
+    // 如果配置了optional，检查是否为空值
+    if (cfg.optional && this.isEmptyValue(value, model, modelIsArray)) {
+      return
+    }
+
     if (!modelIsArray) {
       if (value && isModel) {
         return model.toRaw(value)
@@ -577,6 +582,35 @@ export class Model<T extends ModelMap, D extends MapToType<T> = MapToType<T>, S 
       }
       return this.option.convertToModel ? this.parseValueToModel(model, item) : item
     })
+  }
+
+  /**
+   * 判断值是否为空
+   * @param value 值
+   * @param model 模型类型
+   * @param modelIsArray 是否为数组模型
+   * @returns 是否为空
+   */
+  private isEmptyValue (value: any, model: ModelConstructor, modelIsArray: boolean): boolean {
+    // null 或 undefined 视为空
+    if (value == null) return true
+
+    // 数组模型或 Array 类型：空数组视为空
+    if (modelIsArray || model === Array) {
+      return Array.isArray(value) && value.length === 0
+    }
+
+    // Object 类型：空对象视为空
+    if (model === Object) {
+      return typeof value === 'object' && !Array.isArray(value) && Object.keys(value).length === 0
+    }
+
+    // String 类型：空字符串视为空
+    if (model === String) {
+      return value === ''
+    }
+
+    return false
   }
 
   private parseValueToModel (model: ModelConstructor, value: any): any {

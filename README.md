@@ -282,8 +282,8 @@ const omittedRaw = UserModel.omit(user, ['tags'], true);
 | `model` | `Constructor` | 数据类型（String/Number/Boolean/Array/自定义Model） |
 | `default` | `any \| Function` | 默认值或默认值生成函数 |
 | `parse` | `Function` | 解析函数，用于自定义数据解析逻辑 |
-| `convert` | `Function` | 转换函数，用于转换为源数据 |
-| `optional` | `boolean` | 是否可选，为 true 时值可能为 undefined |
+| `convert` | `false \| Function` | 转换函数，用于转换为源数据，false则toRaw时不赋值 |
+| `optional` | `boolean` | 是否可选，值可能为undefined（parse会是undefined，convert会忽略空值），若需默认值，请配合 default或parse 使用  |
 | `get` | `Function` | Getter 函数 |
 | `set` | `Function` | Setter 函数 |
 | `enum` | `Object \| Array` | 枚举值定义 |

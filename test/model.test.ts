@@ -124,13 +124,72 @@ const testRules = {
         category: {
           model: CategoryModel,
           optional: true,
+        },
+        age: {
+          key: 'user_age',
+          model: Number,
+          optional: true,
+        },
+        nickName: {
+          key: 'user_nick_name',
+          model: String,
+          optional: true,
+        },
+        tags: {
+          key: 'user_tags',
+          model: [String],
+          optional: true,
+        },
+      })
+
+      const user2 = UserModel2.parse({
+        user_age: 19,
+        user_nick_name: '',
+        user_tags: [],
+      })
+      const user2DTO = UserModel2.toRaw(user2)
+
+      return user2.name === '' && user2DTO.user_name === '' &&
+        user2.age === 19 && user2DTO.user_age === 19 &&
+        user2.gender === 0 && user2DTO.user_gender === 0 &&
+        user2.category === undefined && user2DTO.category === undefined &&
+        user2.nickName === '' && user2DTO.user_nick_name === undefined &&
+        user2.tags?.length === 0 && user2DTO.user_tags === undefined
+    },
+    result: true,
+  }, {
+    title: 'field optional',
+    handler () {
+      const UserModel2 = UserBaseModel.extends({
+        age: {
+          key: 'user_age',
+          model: Number,
+          convert: false,
+        },
+        nickName: {
+          key: 'user_nick_name',
+          model: String,
+          convert: false,
+        },
+        tags: {
+          key: 'user_tags',
+          model: [String],
           convert: false,
         },
       })
 
-      const user2 = UserModel2.parse()
+      const user2 = UserModel2.parse({
+        user_age: 19,
+        user_nick_name: '',
+        user_tags: [],
+      })
+      const user2DTO = UserModel2.toRaw(user2)
 
-      return user2.category === undefined && user2.gender === 0
+      return user2.name === '' && user2DTO.user_name === '' &&
+        user2.age === 19 && user2DTO.user_age === undefined &&
+        user2.gender === 0 && user2DTO.user_gender === 0 &&
+        user2.nickName === '' && user2DTO.user_nick_name === undefined &&
+        user2.tags?.length === 0 && user2DTO.user_tags === undefined
     },
     result: true,
   }, {
