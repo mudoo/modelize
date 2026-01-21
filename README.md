@@ -79,7 +79,7 @@ console.log(rawData);
 
 // 可以在转换时合并额外数据
 const rawData2 = UserModel.toRaw(user, {
-  extra_field: 'value',
+  gender: 2,
 });
 ```
 
@@ -201,6 +201,7 @@ const OmittedModel = UserBaseModel.omitExtends(['name'], {
 ```
 
 ### 枚举类型
+更多用法请参考：[enum-plus](https://github.com/shijistar/enum-plus)
 
 ```typescript
 const UserModel = Model.define({

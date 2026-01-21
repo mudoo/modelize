@@ -650,13 +650,13 @@ export class Model<T extends ModelMap, D extends MapToType<T> = MapToType<T>, S 
    * @param mergeData 合并数据
    * @returns
    */
-  convert (target: ModelData, mergeData: ModelData = {}): S {
+  convert (target: ModelData, mergeData?: Partial<D>): S {
     const data = {} as any
     Object.keys(this.map).forEach((k) => {
       const cfg = (this.map[k] || {}) as MapItem
       if (cfg.get && !cfg.key) return
       const key = cfg.key || k
-      data[key] = this.convertField(target, k, mergeData[k])
+      data[key] = this.convertField(target, k, mergeData?.[k as keyof D])
     })
     return data
   }
