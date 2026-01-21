@@ -201,6 +201,7 @@ export type MapToType<T extends ModelMap> =
 
 export type ExtractKey<T, K> =
   T extends { key: infer C extends PropertyKey } ? C :
+  T extends PropertyKey ? T :
   K extends PropertyKey ? K :
   never
 
