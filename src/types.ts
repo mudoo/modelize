@@ -50,7 +50,7 @@ export interface MapItem {
   parse?: (this: any, value: any, data: any, field: string, cfg: MapItem) => any
   /** 转为源数据字段时候调用，convert(value, field)，false则toRaw时不赋值 */
   convert?: ((this: any, value: any, field: string, cfg: MapItem) => any) | false
-  /** 字段是否可选，值可能为undefined，若为true且需默认值，请配合 default或parse 使用 */
+  /** 字段是否可选，值可能为undefined（parse会是undefined，convert会忽略空值），若需默认值，请配合 default或parse 使用 */
   optional?: boolean
   /** 配置getter */
   get?: (this: any) => any
@@ -199,24 +199,22 @@ export type MapToType<T extends ModelMap> =
     ]?: MapType<T[K]>
   }
 
-export type ExtractKey<T> =
+export type ExtractKey<T, K> =
   T extends { key: infer C extends PropertyKey } ? C :
-  T extends PropertyKey ? T :
+  K extends PropertyKey ? K :
   never
 
 /** MapToResult: 自动推导Map数据类型 */
 export type MapToResult<T extends ModelMap> =
-  // 必填项
   {
+    // 必填项
     -readonly [K in keyof T as
-      IsOptional<T[K]> extends true ? never : ExtractKey<T[K]>
+      IsOptional<T[K]> extends true ? never : ExtractKey<T[K], K>
     ]: MapType<T[K], true>
-  }
-  &
-  // 可选项
-  {
+  } & {
+    // 可选项
     -readonly [K in keyof T as
-      IsOptional<T[K]> extends true ? ExtractKey<T[K]> : never
+      IsOptional<T[K]> extends true ? ExtractKey<T[K], K> : never
     ]?: MapType<T[K], true>
   }
 
