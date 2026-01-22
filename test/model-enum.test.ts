@@ -1,6 +1,9 @@
+import { Enum } from 'enum-plus'
 import Model from '../src/model'
 import test from './test'
 import { UserModel } from './test-data'
+
+Model.useEnum(Enum)
 
 // 单元测试
 const testRules = {

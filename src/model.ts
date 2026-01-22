@@ -1,4 +1,3 @@
-import { Enum } from 'enum-plus'
 import type {
   DeepPartial,
   EnumKeys,
@@ -53,7 +52,12 @@ export const Constructs: ModelConstructor[] = [String, Number, Boolean, Array, O
  * ```
  */
 export class Model<T extends ModelMap, D extends MapToType<T> = MapToType<T>, S extends MapToResult<T> = MapToResult<T>> implements IModel<T, D> {
-  static Enum = Enum
+  static Enum: any
+
+  /** 注册枚举方法 */
+  static useEnum (enumFn: any) {
+    this.Enum = enumFn
+  }
 
   /**
    * 定义模型
@@ -726,7 +730,11 @@ export class Model<T extends ModelMap, D extends MapToType<T> = MapToType<T>, S 
 
     if (typeof cfg === 'string' || !cfg.enum) return undefined as never
 
-    // @ts-expect-error: 枚举类型
+    const Enum = (this.constructor as typeof Model).Enum
+    if (!Enum) {
+      throw new Error('[modelize] Enum function not found. Please call Model.useEnum(Enum) first.')
+    }
+
     this.$enum[key] = Enum(cfg.enum)
     return this.$enum[key]
   }

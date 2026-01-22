@@ -1,5 +1,5 @@
 /* eslint-disable no-use-before-define, @typescript-eslint/no-unused-vars */
-import { ArrayToMap, EnumInit, EnumValue, IEnum, NativeEnumMembers, ValueTypeFromSingleInit } from 'enum-plus'
+import type { ArrayToMap, EnumInit, EnumValue, IEnum, NativeEnumMembers, ValueTypeFromSingleInit } from 'enum-plus'
 
 export interface IModel<T extends ModelMap, D extends MapToType<T> = MapToType<T>, S extends MapToResult<T> = MapToResult<T>>{
   /** 源数据类型 */

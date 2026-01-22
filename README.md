@@ -204,6 +204,11 @@ const OmittedModel = UserBaseModel.omitExtends(['name'], {
 更多用法请参考：[enum-plus](https://github.com/shijistar/enum-plus)
 
 ```typescript
+import Model from '../src/model'
+import { Enum } from 'enum-plus'
+
+Model.useEnum(Enum)
+
 const UserModel = Model.define({
   status: {
     key: 'user_status',
