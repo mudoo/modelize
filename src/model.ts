@@ -719,12 +719,12 @@ export class Model<T extends ModelMap, D extends MapToType<T> = MapToType<T>, S 
    * @param field 枚举字段
    * @returns 返回枚举实例
    */
-  enum<K extends EnumKeys<T>> (field: K): ReturnEnum<T[K]> {
+  enum<K extends keyof EnumKeys<T>> (field: K): ReturnEnum<EnumKeys<T>[K]> {
     const key = field as string
     if (this.$enum[key]) return this.$enum[key]
-    const cfg = this.map[key]
+    const cfg = this.map[key] as MapItem
 
-    if (typeof cfg === 'string' || !(cfg as MapItem).enum) return undefined as never
+    if (typeof cfg === 'string' || !cfg.enum) return undefined as never
 
     // @ts-expect-error: 枚举类型
     this.$enum[key] = Enum(cfg.enum)

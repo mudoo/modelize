@@ -219,12 +219,10 @@ export type MapToResult<T extends ModelMap> =
     ]?: MapType<T[K], true>
   }
 
+/** 获取含有枚举的字段名 */
 export type EnumKeys<T> = {
-  [K in keyof T]:
-    T[K] extends string ? never :
-    T[K] extends { enum: any } ? K :
-    never
-}[keyof T]
+  [K in keyof T as T[K] extends { enum: any } ? K : never]: T[K]
+}
 
 /** 枚举类型（对象形式） */
 export type EnumType<
