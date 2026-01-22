@@ -140,12 +140,12 @@ export type PrimitiveType<T, R = false> =
 export type EnumItem = {
   key?: string
   value?: any
-  label?: string
+  label?: any
 }
 export type EnumListItem = {
   key: string
   value?: any
-  label?: string
+  label?: any
 }
 
 export type MapEnumItem<T, V = false> =
