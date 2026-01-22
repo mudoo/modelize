@@ -1,18 +1,26 @@
 {
   "name": "modelize-ts",
-  "version": "1.1.0",
+  "version": "1.1.1",
   "description": "一个 TypeScript 数据模型工具库，用于定义、解析、转换和操作数据模型。支持字段映射、类型转换、模型扩展等功能。",
   "main": "lib/index.js",
   "module": "es/index.js",
+  "types": "lib/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./lib/index.d.ts",
+      "import": "./es/index.js",
+      "require": "./lib/index.js"
+    }
+  },
   "scripts": {
     "dev": "father dev",
     "build": "npm run build:es && npm run build:lib",
     "build:es": "father build",
     "build:deps": "father prebundle",
-    "build:lib": "tsc -p tsconfig.lib.json",
+    "build:lib": "rimraf lib && tsc -p tsconfig.lib.json",
     "test": "cross-env TS_NODE_PROJECT='test/tsconfig.test.json' mocha test/**/**.test.ts",
     "cover": "nyc --reporter=html npm run test",
-    "lint": "tsc --noEmit&eslint --ext .js,.ts --fix src test",
+    "lint": "tsc --noEmit && eslint --ext .js,.ts --fix src test",
     "prepublishOnly": "father doctor && npm run build"
   },
   "mocha": {
@@ -62,6 +70,7 @@
     "father": "^4.6.6",
     "mocha": "^11.7.2",
     "nyc": "^17.1.0",
+    "rimraf": "^6.1.2",
     "ts-node": "^10.9.2",
     "tsconfig-paths": "^4.2.0",
     "typescript": "^5.9.3"
