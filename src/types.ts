@@ -22,6 +22,13 @@ type IsOptional<T> =
     O extends true ? true : false :
   T extends { get: (...args: any) => any } ? true : false;
 
+/** 判断某项是否只读 */
+export type IsReadonly<T> =
+  T extends { readonly: true } ? true :
+  T extends { get: (...args: any) => any } ?
+    T extends { set: (...args: any) => void } ? false : true
+  : false;
+
 /** 宽化类型 */
 type Widen<T> =
   T extends string ? string :
@@ -52,6 +59,8 @@ export interface MapItem {
   convert?: ((this: any, value: any, field: string, cfg: MapItem) => any) | false
   /** 字段是否可选，值可能为undefined（parse会是undefined，convert会忽略空值），若需默认值，请配合 default或parse 使用 */
   optional?: boolean
+  /** 字段是否只读，映射后的类型将带有 readonly 修饰符 */
+  readonly?: boolean
   /** 配置getter */
   get?: (this: any) => any
   /** 配置setter */
@@ -188,14 +197,20 @@ export type MapType<T, R = false> =
 /** MapToType: 自动推导Map类型 */
 export type MapToType<T extends ModelMap> =
   {
-    // 必填项
-    -readonly [K in keyof T as
-      IsOptional<T[K]> extends true ? never : K
+    readonly [K in keyof T as
+      IsOptional<T[K]> extends true ? never : (IsReadonly<T[K]> extends true ? K : never)
     ]: MapType<T[K]>
   } & {
-    // 可选项
     -readonly [K in keyof T as
-      IsOptional<T[K]> extends true ? K : never
+      IsOptional<T[K]> extends true ? never : (IsReadonly<T[K]> extends true ? never : K)
+    ]: MapType<T[K]>
+  } & {
+    readonly [K in keyof T as
+      IsOptional<T[K]> extends true ? (IsReadonly<T[K]> extends true ? K : never) : never
+    ]?: MapType<T[K]>
+  } & {
+    -readonly [K in keyof T as
+      IsOptional<T[K]> extends true ? (IsReadonly<T[K]> extends true ? never : K) : never
     ]?: MapType<T[K]>
   }
 
@@ -208,14 +223,20 @@ export type ExtractKey<T, K> =
 /** MapToResult: 自动推导Map数据类型 */
 export type MapToResult<T extends ModelMap> =
   {
-    // 必填项
-    -readonly [K in keyof T as
-      IsOptional<T[K]> extends true ? never : ExtractKey<T[K], K>
+    readonly [K in keyof T as
+      IsOptional<T[K]> extends true ? never : (IsReadonly<T[K]> extends true ? ExtractKey<T[K], K> : never)
     ]: MapType<T[K], true>
   } & {
-    // 可选项
     -readonly [K in keyof T as
-      IsOptional<T[K]> extends true ? ExtractKey<T[K], K> : never
+      IsOptional<T[K]> extends true ? never : (IsReadonly<T[K]> extends true ? never : ExtractKey<T[K], K>)
+    ]: MapType<T[K], true>
+  } & {
+    readonly [K in keyof T as
+      IsOptional<T[K]> extends true ? (IsReadonly<T[K]> extends true ? ExtractKey<T[K], K> : never) : never
+    ]?: MapType<T[K], true>
+  } & {
+    -readonly [K in keyof T as
+      IsOptional<T[K]> extends true ? (IsReadonly<T[K]> extends true ? never : ExtractKey<T[K], K>) : never
     ]?: MapType<T[K], true>
   }
 
