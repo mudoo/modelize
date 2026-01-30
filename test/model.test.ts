@@ -102,6 +102,60 @@ const testRules = {
     },
     result: true,
   }, {
+    title: 'date string',
+    handler () {
+      const DateModel = Model.define({
+        time: {
+          model: Date,
+        },
+      })
+
+      const dateStr = '2024-01-01'
+      const timeData = DateModel.parse({
+        time: dateStr,
+        date: dateStr,
+      })
+
+      const time = timeData.time
+      return time instanceof Date && time.getTime() === new Date(dateStr).getTime()
+    },
+    result: true,
+  }, {
+    title: 'date number',
+    handler () {
+      const DateModel = Model.define({
+        time: {
+          model: Date,
+        },
+      })
+
+      const timestamp = 1704067200000
+      const timeData = DateModel.parse({
+        time: timestamp,
+      })
+
+      const time = timeData.time
+      return time instanceof Date && time.getTime() === timestamp
+    },
+    result: true,
+  }, {
+    title: 'array date',
+    handler () {
+      const ArrayModel = Model.define({
+        list: {
+          model: [Date],
+        },
+      })
+
+      const list = ['2024-01-01', 1704067200000]
+      const aryData = ArrayModel.parse({
+        list,
+      })
+
+      return aryData.list.every((item: any) => item instanceof Date)
+    },
+    result: true,
+  }, {
     title: 'get',
     handler () {
       const cat = CategoryModel.parse({

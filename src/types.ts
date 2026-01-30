@@ -34,6 +34,7 @@ type Widen<T> =
   T extends string ? string :
   T extends number ? number :
   T extends boolean ? boolean :
+  T extends Date ? Date :
   T
 
 // 定义允许的构造函数类型
@@ -41,6 +42,7 @@ export type ModelConstructor =
   | StringConstructor
   | NumberConstructor
   | BooleanConstructor
+  | DateConstructor
   | (new (...args: any[]) => any)
   | IModel<any> // 支持Model类的实例
 
@@ -49,7 +51,7 @@ export interface MapItem {
   [key: string]: any
   /** 属性对应字段 */
   key?: string
-  /** 属性对应类型，String/Number/Boolean/Array/Object等原生数据类型，或自定义Model等 */
+  /** 属性对应类型，String/Number/Boolean/Date/Array/Object等原生数据类型，或自定义Model等 */
   model?: ModelConstructor | ModelConstructor[]
   /** 属性默认值，当值为null时自动使用该值填充 */
   default?: ((key: string, value: any, data: any, field: string) => any) | any
@@ -142,6 +144,7 @@ export type PrimitiveType<T, R = false> =
   T extends StringConstructor ? string :
   T extends NumberConstructor ? number :
   T extends BooleanConstructor ? boolean :
+  T extends DateConstructor ? Date :
   T extends new (...args: any[]) => any ? SafeInstanceType<T> :  // 自定义Model
   T extends IModel<any> ? R extends true ? MapToResult<T['map']> : T['type'] :  // Model
   any
