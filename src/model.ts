@@ -136,9 +136,11 @@ export class Model<T extends ModelMap, D extends MapToType<T> = MapToType<T>, S 
   declare readonly rawType: S
   /** 无任何值，仅用于提取模型类型：type TestVO = typeof TestModel.type */
   declare readonly type: D
-  readonly map: NormalizedMap<T> = {} as any
   readonly option: ModelOption = {}
-  private readonly $enum: Record<string, any> = {}
+  readonly map: NormalizedMap<T> = {} as any
+  readonly mapKeys: string[] = []
+  readonly mapEntries: [string, MapItem][] = []
+  private readonly accessorEntries: [string, MapItem][] = []
 
   /**
    * 数据模型
@@ -146,8 +148,18 @@ export class Model<T extends ModelMap, D extends MapToType<T> = MapToType<T>, S 
    * @param options 模型选项
    */
   constructor (map: T, opt?: ModelOption) {
-    this.map = Model.parseModelMap(map)
     this.option = Model.parseModelOptions(opt)
+    this.map = Model.parseModelMap(map)
+
+    // 缓存模型定义
+    this.mapKeys = Object.keys(this.map)
+    this.mapKeys.forEach((key) => {
+      const cfg = this.map[key] as MapItem
+      this.mapEntries.push([key, cfg])
+      if (cfg.get || cfg.set) {
+        this.accessorEntries.push([key, cfg])
+      }
+    })
   }
 
   /**
@@ -307,12 +319,8 @@ export class Model<T extends ModelMap, D extends MapToType<T> = MapToType<T>, S 
     const target = {} as R
 
     // 支持getter/setter
-    Object.keys(this.map).forEach((key) => {
-      const mapItem = this.map[key] as MapItem
-
-      if ('get' in mapItem || 'set' in mapItem) {
-        Object.defineProperty(target, key, { enumerable: true, ...mapItem, ...options?.propertyAttributes })
-      }
+    this.accessorEntries.forEach(([key, mapItem]) => {
+      Object.defineProperty(target, key, { enumerable: true, ...mapItem, ...options?.propertyAttributes })
     })
 
     const handler = options?.handler || this.option.handler
@@ -357,12 +365,11 @@ export class Model<T extends ModelMap, D extends MapToType<T> = MapToType<T>, S 
       data = this.option.onBeforeUpdate(target, data)
     }
     if (!data) data = {}
-    Object.keys(this.map).forEach((key) => {
-      const cfg = this.map[key] as MapItem
+    this.mapEntries.forEach(([key, cfg]) => {
       this.setValue(target, key, data[cfg.key!], data, {
         ...options,
         handler: 'update',
-      })
+      }, cfg)
     })
     this.option.onDataChange?.(data)
     return target as D
@@ -378,11 +385,11 @@ export class Model<T extends ModelMap, D extends MapToType<T> = MapToType<T>, S 
    */
   merge (target: ModelData, data: ModelData, options?: HandleOption): D {
     if (!data) return target as D
-    Object.keys(this.map).forEach((key) => {
+    this.mapEntries.forEach(([key, cfg]) => {
       this.setValue(target, key, data[key], data, {
         ...options,
         handler: 'merge',
-      })
+      }, cfg)
     })
     this.option.onDataChange?.(target, data)
     return target as D
@@ -417,7 +424,7 @@ export class Model<T extends ModelMap, D extends MapToType<T> = MapToType<T>, S 
    * @returns
    */
   clear (target: ModelData, all?: boolean, useModel?: boolean): D {
-    const keys = Object.keys(all ? target : this.map)
+    const keys = all ? Object.keys(target) : this.mapKeys
     keys.forEach((key) => {
       const cfg = Object.getOwnPropertyDescriptor(target, key)
       if (cfg?.get && !cfg.set) return
@@ -468,7 +475,7 @@ export class Model<T extends ModelMap, D extends MapToType<T> = MapToType<T>, S 
    * @returns
    */
   // eslint-disable-next-line max-lines-per-function
-  private setValue (target: ModelData, field: string, value?: any, data: ModelData = {}, opt?: HandleOption): D {
+  private setValue (target: ModelData, field: string, value?: any, data: ModelData = {}, opt?: HandleOption, cfg?: MapItem): D {
     opt = {
       skipNull: true,
       ...this.option,
@@ -478,7 +485,7 @@ export class Model<T extends ModelMap, D extends MapToType<T> = MapToType<T>, S 
     // 跳过null
     if (opt.skipNull && value == null) return target as D
 
-    const cfg = (this.map[field] || {}) as MapItem
+    if (!cfg) cfg = (this.map[field] || {}) as MapItem
     if (cfg.get && !cfg.set) return target as D
     // 配置数据解析，直接使用解析后数据
     if (cfg.parse) {
@@ -549,8 +556,7 @@ export class Model<T extends ModelMap, D extends MapToType<T> = MapToType<T>, S 
    * @param value 数值，未传默认取当前实例中的field值
    * @returns 转换后的数据
    */
-  private convertField (target: ModelData, field: string, value?: any): any {
-    const cfg = (this.map[field] || {}) as MapItem
+  private convertField (target: ModelData, field: string, value?: any, cfg: MapItem = this.map[field] as MapItem): any {
     if (value == null) value = target[field]
 
     if (cfg.convert != null) {
@@ -656,11 +662,10 @@ export class Model<T extends ModelMap, D extends MapToType<T> = MapToType<T>, S 
    */
   convert (target: ModelData, mergeData?: Partial<D>): S {
     const data = {} as any
-    Object.keys(this.map).forEach((k) => {
-      const cfg = (this.map[k] || {}) as MapItem
+    this.mapEntries.forEach(([k, cfg]) => {
       if (cfg.get && !cfg.key) return
       const key = cfg.key || k
-      data[key] = this.convertField(target, k, mergeData?.[k as keyof D])
+      data[key] = this.convertField(target, k, mergeData?.[k as keyof D], cfg)
     })
     return data
   }
@@ -687,7 +692,7 @@ export class Model<T extends ModelMap, D extends MapToType<T> = MapToType<T>, S 
     keys.forEach((key) => {
       const cfg = (this.map[key as string] || {}) as MapItem
       const k = toRaw ? cfg.key || key : key
-      data[k] = toRaw ? this.convertField(target, key as string) : target[key as string]
+      data[k] = toRaw ? this.convertField(target, key as string, undefined, cfg) : target[key as string]
     })
 
     return data
@@ -706,18 +711,20 @@ export class Model<T extends ModelMap, D extends MapToType<T> = MapToType<T>, S 
   omit<K extends keyof D> (target: ModelData, keys: K[], toRaw: boolean = false): any {
     const data = {} as any
 
-    Object.keys(this.map).forEach((key) => {
+    this.mapKeys.forEach((key) => {
       if (keys.includes(key as unknown as K)) return
 
       const cfg = (this.map[key] || {}) as MapItem
       if (cfg.get && !cfg.key) return
       const k = toRaw ? cfg.key || key : key
-      data[k] = toRaw ? this.convertField(target, key as string) : target[key as string]
+      data[k] = toRaw ? this.convertField(target, key as string, undefined, cfg) : target[key as string]
     })
 
     return data
   }
 
+  // 枚举缓存
+  private readonly $enum: Record<string, any> = {}
   /**
    * 获取枚举
    * @param field 枚举字段
