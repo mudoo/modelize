@@ -14,15 +14,14 @@ import type {
   ParseOption,
   ReturnEnum,
 } from './types'
+import {
+  checkType,
+  Constructs,
+  getTypeName,
+  isEmptyValue,
+  isObject,
+} from './check'
 export type * from './types'
-
-// 验证是否Object
-function isObject (data: any): boolean {
-  return Object.prototype.toString.call(data) === '[object Object]'
-}
-
-/** 允许的构造函数类型 */
-export const Constructs: ModelConstructor[] = [String, Number, Boolean, Array, Object, Date]
 
 /**
  * 通用数据模型类，用于定义、解析、转换和操作数据模型。
@@ -52,8 +51,13 @@ export const Constructs: ModelConstructor[] = [String, Number, Boolean, Array, O
  * ```
  */
 export class Model<T extends ModelMap, D extends MapToType<T> = MapToType<T>, S extends MapToResult<T> = MapToResult<T>> implements IModel<T, D> {
-  static Enum: any
+  /** 调试模式：类型不匹配时输出警告 */
+  static debug: boolean = false
+  /** 严格模式：类型不匹配时抛出错误 */
+  static strict: boolean = false
 
+  /** 枚举方法 */
+  static Enum: any
   /** 注册枚举方法 */
   static useEnum (enumFn: any) {
     this.Enum = enumFn
@@ -486,6 +490,22 @@ export class Model<T extends ModelMap, D extends MapToType<T> = MapToType<T>, S 
     if (opt.skipNull && value == null) return target as D
 
     if (!cfg) cfg = (this.map[field] || {}) as MapItem
+
+    // 类型检查
+    const isDebug = opt.debug ?? (this.constructor as typeof Model).debug
+    const isStrict = opt.strict ?? (this.constructor as typeof Model).strict
+
+    if ((isDebug || isStrict) && cfg.model) {
+      if (!checkType(cfg.model, value)) {
+        const msg = `[modelize] Type mismatch for field "${field}": expected ${getTypeName(cfg.model)}, got ${Object.prototype.toString.call(value)}`
+        if (isStrict) {
+          throw new TypeError(msg)
+        } else {
+          console.warn(msg)
+        }
+      }
+    }
+
     if (cfg.get && !cfg.set) return target as D
     // 配置数据解析，直接使用解析后数据
     if (cfg.parse) {
@@ -569,7 +589,7 @@ export class Model<T extends ModelMap, D extends MapToType<T> = MapToType<T>, S 
     const isModel = model && model instanceof Model
 
     // 如果配置了optional，检查是否为空值
-    if (cfg.optional && this.isEmptyValue(value, model, modelIsArray)) {
+    if (cfg.optional && isEmptyValue(value, model, modelIsArray)) {
       return
     }
 
@@ -592,35 +612,6 @@ export class Model<T extends ModelMap, D extends MapToType<T> = MapToType<T>, S 
       }
       return this.option.convertToModel ? this.parseValueToModel(model, item) : item
     })
-  }
-
-  /**
-   * 判断值是否为空
-   * @param value 值
-   * @param model 模型类型
-   * @param modelIsArray 是否为数组模型
-   * @returns 是否为空
-   */
-  private isEmptyValue (value: any, model: ModelConstructor, modelIsArray: boolean): boolean {
-    // null 或 undefined 视为空
-    if (value == null) return true
-
-    // 数组模型或 Array 类型：空数组视为空
-    if (modelIsArray || model === Array) {
-      return Array.isArray(value) && value.length === 0
-    }
-
-    // Object 类型：空对象视为空
-    if (model === Object) {
-      return typeof value === 'object' && !Array.isArray(value) && Object.keys(value).length === 0
-    }
-
-    // String 类型：空字符串视为空
-    if (model === String) {
-      return value === ''
-    }
-
-    return false
   }
 
   private parseValueToModel (model: ModelConstructor, value: any): any {

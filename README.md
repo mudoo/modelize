@@ -227,6 +227,29 @@ console.log(StatusEnum.label('active'));  // '活跃'
 console.log(StatusEnum.label(1));         // '活跃'
 ```
 
+### Debug 和 Strict 模式
+
+用于在开发阶段或生产环境中检测数据的一致性。
+
+- **Debug 模式**：当原始数据类型与模型配置严重不匹配时（如预期 `Number` 却收到 `Object`），在控制台输出警告。
+- **Strict 模式**：当类型严重不匹配时直接抛出 `TypeError` 错误，确保数据强一致性。
+
+#### 全局配置
+```typescript
+Model.debug = true;  // 开启全局调试模式
+Model.strict = true; // 开启全局严格模式
+```
+
+#### 局部配置
+```typescript
+const UserModel = Model.define({
+  name: String,
+}, {
+  debug: true,  // 仅对此模型开启调试
+  strict: true, // 仅对此模型开启严格模式
+});
+```
+
 ## 模型方法
 
 ### 数据操作
@@ -285,11 +308,12 @@ const omittedRaw = UserModel.omit(user, ['tags'], true);
 | 参数 | 类型 | 说明 |
 |------|------|------|
 | `key` | `string` | 源字段名 |
-| `model` | `Constructor` | 数据类型（String/Number/Boolean/Array/自定义Model） |
+| `model` | `Constructor` | 数据类型（String/Number/Boolean/Date/Array/自定义Model） |
 | `default` | `any \| Function` | 默认值或默认值生成函数 |
 | `parse` | `Function` | 解析函数，用于自定义数据解析逻辑 |
 | `convert` | `false \| Function` | 转换函数，用于转换为源数据，false则toRaw时不赋值 |
-| `optional` | `boolean` | 是否可选，值可能为undefined（parse会是undefined，convert会忽略空值），若需默认值，请配合 default或parse 使用  |
+| `optional` | `boolean` | 是否可选，值可能为undefined（parse会是undefined，convert会忽略空值），若需默认值，请配合 default或parse 使用 |
+| `readonly` | `boolean` | 是否只读，映射后的类型将带有 readonly 修饰符 |
 | `get` | `Function` | Getter 函数 |
 | `set` | `Function` | Setter 函数 |
 | `enum` | `Object \| Array` | 枚举值定义 |
@@ -301,6 +325,8 @@ const omittedRaw = UserModel.omit(user, ['tags'], true);
 | `parseToModel` | `boolean` | 解析时是否自动转成模型数据，为空或数据类型不匹配时，将自动转为指定模型数据。若明确设置了default，为空时依然使用default值。默认true |
 | `convertToModel` | `boolean` | 转换为源数据时，是否自动转成模型格式数据。默认false |
 | `handler` | `'update' \| 'merge' \| 'attr'` | 实例化时的数据赋值方法，默认 'update' |
+| `debug` | `boolean` | 调试模式：类型不匹配时输出警告。优先级高于 `Model.debug` |
+| `strict` | `boolean` | 严格模式：类型不匹配时抛出错误。优先级高于 `Model.strict` |
 | `onBeforeUpdate` | `Function` | 更新前的数据预处理函数 |
 | `onDataChange` | `Function` | 数据更新后的回调函数 |
 

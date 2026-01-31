@@ -49,19 +49,19 @@ export type ModelConstructor =
 /** MapItem: model 可为单个构造函数或构造函数数组 */
 export interface MapItem {
   [key: string]: any
-  /** 属性对应字段 */
+  /** 源字段名 */
   key?: string
-  /** 属性对应类型，String/Number/Boolean/Date/Array/Object等原生数据类型，或自定义Model等 */
+  /** 数据类型，String/Number/Boolean/Date/Array/Object等原生数据类型，或自定义Model等 */
   model?: ModelConstructor | ModelConstructor[]
-  /** 属性默认值，当值为null时自动使用该值填充 */
+  /** 默认值或默认值生成函数 */
   default?: ((key: string, value: any, data: any, field: string) => any) | any
-  /** 实例化前解析数据(update调用) */
+  /** 解析函数，用于自定义数据解析逻辑 */
   parse?: (this: any, value: any, data: any, field: string, cfg: MapItem) => any
-  /** 转为源数据字段时候调用，convert(value, field)，false则toRaw时不赋值 */
+  /** 转换函数，用于转换为源数据，false则toRaw时不赋值 */
   convert?: ((this: any, value: any, field: string, cfg: MapItem) => any) | false
-  /** 字段是否可选，值可能为undefined（parse会是undefined，convert会忽略空值），若需默认值，请配合 default或parse 使用 */
+  /** 是否可选，值可能为undefined（parse会是undefined，convert会忽略空值），若需默认值，请配合 default或parse 使用 */
   optional?: boolean
-  /** 字段是否只读，映射后的类型将带有 readonly 修饰符 */
+  /** 是否只读，映射后的类型将带有 readonly 修饰符 */
   readonly?: boolean
   /** 配置getter */
   get?: (this: any) => any
@@ -93,6 +93,10 @@ export interface ModelOption {
   convertToModel?: boolean
   /** 实例化时所使用的数据赋值方法，支持update、merge、attr。默认update */
   handler?: 'update' | 'merge' | 'attr'
+  /** 调试模式：类型不匹配时输出警告。优先级高于Model.debug */
+  debug?: boolean
+  /** 严格模式：类型不匹配时抛出错误。优先级高于Model.strict */
+  strict?: boolean
   /**
    * 前置数据解析，用于前置处理实例化所需的数据(update)
    *
