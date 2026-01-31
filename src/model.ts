@@ -16,11 +16,16 @@ import type {
 } from './types'
 import {
   checkType,
-  Constructs,
   getTypeName,
   isEmptyValue,
-  isObject,
 } from './check'
+import {
+  createExtendedModel,
+  parseModelMap,
+  parseModelOptions,
+  resolveConvertValue,
+  resolveSetValue,
+} from './helper'
 export type * from './types'
 
 /**
@@ -74,68 +79,6 @@ export class Model<T extends ModelMap, D extends MapToType<T> = MapToType<T>, S 
     return new this(map, opt)
   }
 
-  //////////////////////////////////////////////////
-  /**
-   * 解析选项
-   * @param {ModelOption} options 模型选项
-   * @returns {ModelOption}
-   */
-  private static parseModelOptions (options?: ModelOption) {
-    options = Object.assign(
-      {
-        parseToModel: true,
-        handler: 'update',
-      },
-      options,
-    )
-
-    const handlers = ['update', 'merge', 'attr'] as ModelOption['handler'][]
-    if (!options.handler || handlers.indexOf(options.handler) === -1) options.handler = handlers[0]
-
-    return options
-  }
-
-  /**
-   * 解析模型配置Map
-   * @param {ModelMap} map 模型选项
-   * @returns 标准化模型定义Map
-   */
-  private static parseModelMap<M extends ModelMap> (map: M): NormalizedMap<M> {
-    const res = Object.assign({}, map) as any
-
-    Object.keys(res).forEach((key) => {
-      let mapItem = res[key] as MapItem
-      const type = typeof mapItem
-
-      if (type === 'string' || type === 'number') {
-        // key: 'map_key'
-        mapItem = {
-          key: mapItem as unknown as string,
-        } as MapItem
-        res[key] = mapItem
-      } else if (
-        Array.isArray(mapItem) ||
-        type === 'function' ||
-        Constructs.includes(mapItem as ModelConstructor) ||
-        mapItem instanceof Model
-      ) {
-        // key: Model || [Model]
-        mapItem = {
-          key,
-          model: mapItem,
-        } as MapItem
-        res[key] = mapItem
-      }
-
-      if (!mapItem.key && !mapItem.get) {
-        mapItem.key = key
-      }
-    })
-
-    return res
-  }
-  //////////////////////////////////////////////////
-
   /** 无任何值，仅用于提取源数据类型：type TestDTO = typeof TestModel.rawType */
   declare readonly rawType: S
   /** 无任何值，仅用于提取模型类型：type TestVO = typeof TestModel.type */
@@ -152,8 +95,8 @@ export class Model<T extends ModelMap, D extends MapToType<T> = MapToType<T>, S 
    * @param options 模型选项
    */
   constructor (map: T, opt?: ModelOption) {
-    this.option = Model.parseModelOptions(opt)
-    this.map = Model.parseModelMap(map)
+    this.option = parseModelOptions(opt)
+    this.map = parseModelMap(map, (val) => val instanceof Model)
 
     // 缓存模型定义
     this.mapKeys = Object.keys(this.map)
@@ -195,17 +138,11 @@ export class Model<T extends ModelMap, D extends MapToType<T> = MapToType<T>, S 
     if (Array.isArray(keysOrMap)) {
       return this.pickExtends(keysOrMap, mapOrOpt as M, opt)
     } else {
-      const Cls = this.constructor as new (map: any, opt?: any) => any
-      return new Cls(
-        {
-          ...this.map,
-          ...keysOrMap,
-        },
-        {
-          ...this.option,
-          ...mapOrOpt,
-        },
-      )
+      return createExtendedModel(this.constructor, this.map, this.option, {
+        type: 'extends',
+        map: keysOrMap,
+        opt: mapOrOpt,
+      })
     }
   }
 
@@ -234,24 +171,12 @@ export class Model<T extends ModelMap, D extends MapToType<T> = MapToType<T>, S 
   ): Model<Omit<Pick<T, K>, keyof M> & M>
 
   pickExtends<K extends keyof T, const M extends ModelMap> (keys: K[], map?: M, opt?: ModelOption): any {
-    const picked = {} as any
-    for (const key of keys) {
-      if (key in this.map) {
-        picked[key] = this.map[key]
-      }
-    }
-
-    const Cls = this.constructor as new (map: any, opt?: any) => any
-    return new Cls(
-      {
-        ...picked,
-        ...map,
-      },
-      {
-        ...this.option,
-        ...opt,
-      },
-    )
+    return createExtendedModel(this.constructor, this.map, this.option, {
+      type: 'pick',
+      keys,
+      map,
+      opt,
+    })
   }
 
   /**
@@ -276,26 +201,12 @@ export class Model<T extends ModelMap, D extends MapToType<T> = MapToType<T>, S 
   ): Model<Omit<T, K> & M>
 
   omitExtends<K extends keyof T, const M extends ModelMap> (keys: K[] | K, map?: M, opt?: ModelOption): any {
-    const define = { ...this.map }
-    if (Array.isArray(keys)) {
-      keys.forEach((key) => {
-        delete define[key]
-      })
-    } else {
-      delete define[keys as keyof T]
-    }
-
-    const Cls = this.constructor as new (map: any, opt?: any) => any
-    return new Cls(
-      {
-        ...define,
-        ...map,
-      },
-      {
-        ...this.option,
-        ...opt,
-      },
-    )
+    return createExtendedModel(this.constructor, this.map, this.option, {
+      type: 'omit',
+      keys,
+      map,
+      opt,
+    })
   }
 
   /**
@@ -524,48 +435,7 @@ export class Model<T extends ModelMap, D extends MapToType<T> = MapToType<T>, S 
       return target as D
     }
 
-    const model = cfg.model as ModelConstructor
-
-    if (!model) {
-      target[field] = value
-      return target as D
-    }
-
-    if (Constructs.includes(model)) {
-      value = this.parseValueToModel(model, value)
-    } else {
-      const isModel = model instanceof Model
-      // 数组
-      const modelIsArray = Array.isArray(cfg.model)
-      if (Array.isArray(value) || modelIsArray) {
-        if (value == null) {
-          value = []
-        } else {
-          if (!Array.isArray(value)) value = [value]
-          const aryModel = modelIsArray ? (cfg.model as ModelConstructor[])[0] : model
-          if (aryModel && aryModel instanceof Model) {
-            value = aryModel.parseList(value, opt)
-          } else {
-            value = value.map((v: any) => this.parseValueToModel(aryModel, v))
-          }
-        }
-      } else if (isObject(value) || isObject(model) || isModel) {
-        // map对象
-        if (value && value.$model instanceof Model) {
-          value = value.$model.clone(value, true, opt.linkMap)
-        } else if (isModel) {
-          // 已经存在模型值，直接更新
-          if (target[field]?.$model === model) {
-            return model[opt.handler!](target[field], value, opt) as D
-          }
-          value = model.parse(value, opt)
-        } else {
-          value = Object.assign({}, value)
-        }
-      }
-    }
-
-    target[field] = value
+    target[field] = resolveSetValue(target, field, value, cfg, opt, (val) => val instanceof Model)
     return target as D
   }
 
@@ -586,62 +456,13 @@ export class Model<T extends ModelMap, D extends MapToType<T> = MapToType<T>, S 
 
     const modelIsArray = Array.isArray(cfg.model)
     const model = (modelIsArray ? (cfg.model as ModelConstructor[])[0] : cfg.model) as ModelConstructor
-    const isModel = model && model instanceof Model
 
     // 如果配置了optional，检查是否为空值
     if (cfg.optional && isEmptyValue(value, model, modelIsArray)) {
       return
     }
 
-    if (!modelIsArray) {
-      if (value && isModel) {
-        return model.toRaw(value)
-      } else {
-        return this.option.convertToModel ? this.parseValueToModel(model, value) : value
-      }
-    }
-
-    if (!value) {
-      value = []
-    } else if (!Array.isArray(value)) {
-      value = [value]
-    }
-    return value.map((item: any) => {
-      if (item && isModel) {
-        return model.toRaw(item)
-      }
-      return this.option.convertToModel ? this.parseValueToModel(model, item) : item
-    })
-  }
-
-  private parseValueToModel (model: ModelConstructor, value: any): any {
-    switch (model) {
-      case Array:
-        value = value && Array.isArray(value) ? value.slice() : []
-        break
-      case Object:
-        value = value && isObject(value) ? { ...value } : {}
-        break
-      case String:
-        value = String(value ?? '')
-        break
-      case Number:
-        value = parseFloat(value)
-        if (isNaN(value)) value = 0
-        break
-      case Boolean:
-        value = String(value) === 'true' || String(value) === '1'
-        break
-      case Date:
-        if (/^\d+$/.test(String(value))) {
-          value = new Date(parseInt(value))
-        } else {
-          value = new Date(value || undefined)
-        }
-        break
-    }
-
-    return value
+    return resolveConvertValue(value, cfg, !!this.option.convertToModel, (val) => val instanceof Model)
   }
 
   /**
