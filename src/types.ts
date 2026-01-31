@@ -16,6 +16,8 @@ export interface IModel<T extends ModelMap, D extends MapToType<T> = MapToType<T
 export type IsModel<T> = T extends IModel<infer U, infer V> ? true : false;
 /** 判断是否为数组 */
 type IsArray<T> = T extends readonly any[] ? true : false
+/** 兼容只读和普通数组 */
+type AnyArray<T = any> = T[] | readonly T[]
 /** 判断某项是否可选 */
 type IsOptional<T> =
   T extends { optional: infer O } ?
@@ -52,7 +54,7 @@ export interface MapItem {
   /** 源字段名 */
   key?: string
   /** 数据类型，String/Number/Boolean/Date/Array/Object等原生数据类型，或自定义Model等 */
-  model?: ModelConstructor | ModelConstructor[]
+  model?: ModelConstructor | AnyArray<ModelConstructor>
   /** 默认值或默认值生成函数 */
   default?: ((key: string, value: any, data: any, field: string) => any) | any
   /** 解析函数，用于自定义数据解析逻辑 */
@@ -68,7 +70,7 @@ export interface MapItem {
   /** 配置setter */
   set?: (this: any, val: any) => void
   /** 枚举值，支持enum推导 */
-  enum?: Record<string, string | number | EnumItem> | EnumListItem[]
+  enum?: Record<string, string | number | EnumItem> | AnyArray<EnumListItem>
 }
 
 /** 模型定义Map */
@@ -165,7 +167,7 @@ export type EnumListItem = {
 }
 
 export type MapEnumItem<T, V = false> =
-  T extends (infer C)[] ? ValueTypeFromSingleInit<C> :
+  T extends AnyArray<infer C> ? ValueTypeFromSingleInit<C> :
   T extends Record<string, infer C>
     ? V extends true
       ? ValueTypeFromSingleInit<C>
@@ -191,7 +193,7 @@ export type MapType<T, R = false> =
   T extends IModel<any, any, any> ? PrimitiveType<T, R> :
   T extends string ? any :                                        // [key]: 'map_key'
   T extends { enum: infer O } ? MapEnum<O, Omit<T, 'enum'>, R> :  // { enum: { ... } } 支持object，推导为key联合类型
-  T extends { model: (infer C)[] } ? PrimitiveType<C, R>[] :      // { model: [Model] -> Model[] }
+  T extends { model: AnyArray<infer C> } ? PrimitiveType<C, R>[] :      // { model: [Model] -> Model[] }
   T extends { model: infer C } ? PrimitiveType<C, R> :            // { model: Model }
   T extends { get: (...args: any) => infer I } ? I :              // { get: () => any }
   T extends DateConstructor ? Date :
@@ -199,7 +201,7 @@ export type MapType<T, R = false> =
   ? (
       T extends { default: (...args: any) => infer I } ? I :        // { default: () => any }
       T extends { default: any } ? Widen<T['default']> :            // { default: any }
-      T extends (infer C)[] ? PrimitiveType<C, R>[] :               // [key]: [Model] -> Model[]
+      T extends AnyArray<infer C> ? PrimitiveType<C, R>[] :               // [key]: [Model] -> Model[]
       PrimitiveType<T, R>                                           // [key]: Model)
     )
   : ExtractParseOrConvert<T, R>;
@@ -264,7 +266,7 @@ export type EnumType<
 
 /** 枚举类型（数组形式） */
 export type EnumList<
-  A extends Record<string, any>[],
+  A extends AnyArray<Record<string, any>>,
   // @ts-expect-error: ArrayToMap
   Map extends EnumInit<K, V> = ArrayToMap<A>,
   K extends keyof Map = keyof Map,
@@ -274,7 +276,7 @@ export type EnumList<
 /** 枚举方法返回类型 */
 export type ReturnEnum<T> =
   T extends { enum: infer E }
-    ? E extends Record<string, any>[]
+    ? E extends AnyArray<Record<string, any>>
       ? EnumList<E>
       : E extends Record<string, any>
         ? EnumType<E>
