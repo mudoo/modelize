@@ -156,6 +156,35 @@ const testRules = {
     },
     result: true,
   }, {
+    title: 'object',
+    handler () {
+      const ObjectModel = Model.define({
+        info: Object,
+      })
+
+      const info = { a: 1, b: '2' }
+      const data = ObjectModel.parse({
+        info,
+      })
+
+      return data.info !== info && JSON.stringify(data.info) === JSON.stringify(info)
+    },
+    result: true,
+  }, {
+    title: 'object empty',
+    handler () {
+      const ObjectModel = Model.define({
+        info: Object,
+      })
+
+      const data = ObjectModel.parse({
+        info: [],
+      })
+
+      return JSON.stringify(data.info) === '{}'
+    },
+    result: true,
+  }, {
     title: 'get',
     handler () {
       const cat = CategoryModel.parse({

@@ -44,7 +44,7 @@ export type ModelConstructor =
   | BooleanConstructor
   | DateConstructor
   | (new (...args: any[]) => any)
-  | IModel<any> // 支持Model类的实例
+  | IModel<any, any, any> // 支持Model类的实例
 
 /** MapItem: model 可为单个构造函数或构造函数数组 */
 export interface MapItem {
@@ -72,7 +72,7 @@ export interface MapItem {
 }
 
 /** 模型定义Map */
-export type ModelMap = Record<string, string | number | MapItem>
+export type ModelMap = Record<string, string | number | MapItem | IModel<any, any, any>>
 
 /** 标准化后的模型定义Map */
 export type NormalizedMap<T extends ModelMap> = {
@@ -143,14 +143,14 @@ export type SafeInstanceType<T> = T extends new (...args: any[]) => any
 
 /** 类型映射：将原生构造函数转换为对应的基本类型 */
 export type PrimitiveType<T, R = false> =
+  T extends DateConstructor ? Date :
   T extends ObjectConstructor ? Record<string, any> :
   T extends ArrayConstructor ? any[] :
   T extends StringConstructor ? string :
   T extends NumberConstructor ? number :
   T extends BooleanConstructor ? boolean :
-  T extends DateConstructor ? Date :
+  T extends IModel<any, any, any> ? (R extends true ? T['rawType'] : T['type']) :  // Model 实例
   T extends new (...args: any[]) => any ? SafeInstanceType<T> :  // 自定义Model
-  T extends IModel<any> ? R extends true ? MapToResult<T['map']> : T['type'] :  // Model
   any
 
 export type EnumItem = {
@@ -182,16 +182,19 @@ export type MapEnum<T, O = null, R = false> =
       : never
 
 type ExtractParseOrConvert<T, R> =
+  T extends IModel<any, any, any> ? never :
   R extends true
     ? (T extends { convert: (...args: any) => infer R } ? R : never)
     : (T extends { parse: (...args: any) => infer R } ? R : never);
 
 export type MapType<T, R = false> =
+  T extends IModel<any, any, any> ? PrimitiveType<T, R> :
   T extends string ? any :                                        // [key]: 'map_key'
   T extends { enum: infer O } ? MapEnum<O, Omit<T, 'enum'>, R> :  // { enum: { ... } } 支持object，推导为key联合类型
   T extends { model: (infer C)[] } ? PrimitiveType<C, R>[] :      // { model: [Model] -> Model[] }
   T extends { model: infer C } ? PrimitiveType<C, R> :            // { model: Model }
   T extends { get: (...args: any) => infer I } ? I :              // { get: () => any }
+  T extends DateConstructor ? Date :
   ExtractParseOrConvert<T, R> extends never
   ? (
       T extends { default: (...args: any) => infer I } ? I :        // { default: () => any }
@@ -282,7 +285,7 @@ export type DeepPartial<T, Depth extends number = 3> =
   [Depth] extends [never]
     ? T
     : T extends object
-      ? T extends IModel<any>
+      ? T extends IModel<any, any, any>
         ? DeepPartial<T['type'], PrevDepth[Depth]>
         : { [K in keyof T]?: DeepPartial<T[K], PrevDepth[Depth]> }
       : T;
