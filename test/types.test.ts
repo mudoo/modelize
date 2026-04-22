@@ -1,4 +1,5 @@
 import Model from '../src/model'
+import { $td } from './enum'
 import * as assert from 'assert'
 
 describe('TypeScript Types', () => {
@@ -154,18 +155,30 @@ describe('TypeScript Types', () => {
           { key: 'B', value: 'b' },
         ],
       },
+      testEnum: {
+        key: 'test_enum',
+        enum: {
+          a: { value: 'a1', label: $td('A') },
+          b: { value: 1, label: $td('B') },
+          c: { value: true, label: $td('C') },
+          d: { value: false, label: $td('D') },
+        },
+      },
     })
 
     type EnumVO = typeof EnumModel.type
     const vo: EnumVO = {
       status: 1,
       tags: 'a',
+      testEnum: 'a1',
     }
     // @ts-expect-error: status is value union (0 | 1)
     vo.status = 'ACTIVE'
     vo.status = 0
+    vo.testEnum = 1
 
     assert.ok(EnumModel)
     assert.strictEqual(vo.status, 0)
+    assert.strictEqual(vo.testEnum, 1)
   })
 })
