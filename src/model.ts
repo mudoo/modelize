@@ -1,6 +1,6 @@
+/* eslint-disable no-use-before-define, @typescript-eslint/no-unused-vars */
 import type {
   DeepPartial,
-  EnumKeys,
   HandleOption,
   MapItem,
   MapToResult,
@@ -12,7 +12,6 @@ import type {
   ModelMap,
   ModelOption,
   ParseOption,
-  ReturnEnum,
 } from './types'
 import {
   checkType,
@@ -61,11 +60,15 @@ export class Model<T extends ModelMap, D extends MapToType<T> = MapToType<T>, S 
   /** 严格模式：类型不匹配时抛出错误 */
   static strict: boolean = false
 
-  /** 枚举方法 */
-  static Enum: any
-  /** 注册枚举方法 */
-  static useEnum (enumFn: any) {
-    this.Enum = enumFn
+  /** 校验钩子 */
+  static validators: ((this: any, field: string, value: any, cfg: MapItem, opt: HandleOption) => boolean)[] = []
+
+  /**
+   * 注册插件
+   * @param plugin 插件函数
+   */
+  static usePlugin (plugin: (m: typeof Model) => void) {
+    plugin(this)
   }
 
   /**
@@ -361,11 +364,12 @@ export class Model<T extends ModelMap, D extends MapToType<T> = MapToType<T>, S 
    * @returns
    */
   clone (target: ModelData, all?: boolean, linkMap = new WeakMap()): D {
-    const linkInstance = linkMap.get(this)
-    if (linkInstance) return linkInstance
+    if (linkMap.has(target)) return linkMap.get(target)
 
     const model = (target.$model || this) as this
     const res = model.parse({}, model.option)
+    linkMap.set(target, res)
+
     const options: HandleOption = {
       skipNull: false,
       linkMap,
@@ -407,7 +411,10 @@ export class Model<T extends ModelMap, D extends MapToType<T> = MapToType<T>, S 
     const isStrict = opt.strict ?? (this.constructor as typeof Model).strict
 
     if ((isDebug || isStrict) && cfg.model) {
-      if (!checkType(cfg.model, value)) {
+      // 执行插件校验
+      const handled = (this.constructor as typeof Model).validators.some(v => v.call(this, field, value, cfg, opt))
+
+      if (!handled && !checkType(cfg.model, value)) {
         const msg = `[modelize] Type mismatch for field "${field}": expected ${getTypeName(cfg.model)}, got ${Object.prototype.toString.call(value)}`
         if (isStrict) {
           throw new TypeError(msg)
@@ -533,29 +540,6 @@ export class Model<T extends ModelMap, D extends MapToType<T> = MapToType<T>, S 
     })
 
     return data
-  }
-
-  // 枚举缓存
-  private readonly $enum: Record<string, any> = {}
-  /**
-   * 获取枚举
-   * @param field 枚举字段
-   * @returns 返回枚举实例
-   */
-  enum<K extends keyof EnumKeys<T>> (field: K): ReturnEnum<EnumKeys<T>[K]> {
-    const key = field as string
-    if (this.$enum[key]) return this.$enum[key]
-    const cfg = this.map[key] as MapItem
-
-    if (typeof cfg === 'string' || !cfg.enum) return undefined as never
-
-    const Enum = (this.constructor as typeof Model).Enum
-    if (!Enum) {
-      throw new Error('[modelize] Enum function not found. Please call Model.useEnum(Enum) first.')
-    }
-
-    this.$enum[key] = Enum(cfg.enum)
-    return this.$enum[key]
   }
 }
 

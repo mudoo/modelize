@@ -5,7 +5,7 @@ export const Constructs: ModelConstructor[] = [String, Number, Boolean, Array, O
 
 // 验证是否Object
 export function isObject (data: any): boolean {
-  return Object.prototype.toString.call(data) === '[object Object]'
+  return data !== null && typeof data === 'object' && !Array.isArray(data)
 }
 
 /**

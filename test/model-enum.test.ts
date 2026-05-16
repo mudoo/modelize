@@ -3,8 +3,9 @@ import { $td } from './enum'
 import Model from '../src/model'
 import test from './test'
 import { UserModel } from './test-data'
+import { EnumPlugin } from 'src'
 
-Model.useEnum(Enum)
+Model.usePlugin(EnumPlugin(Enum))
 
 // 单元测试
 const testRules = {

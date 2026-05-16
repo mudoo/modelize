@@ -1,5 +1,5 @@
 /* eslint-disable no-use-before-define, @typescript-eslint/no-unused-vars */
-import type { ArrayToMap, EnumInit, EnumValue, IEnum, NativeEnumMembers, ValueTypeFromSingleInit } from 'enum-plus'
+import type { MapEnum, EnumItem, EnumListItem } from './plugins/enum'
 
 export interface IModel<T extends ModelMap, D extends MapToType<T> = MapToType<T>, S extends MapToResult<T> = MapToResult<T>>{
   /** 源数据类型 */
@@ -15,9 +15,9 @@ export interface IModel<T extends ModelMap, D extends MapToType<T> = MapToType<T
 /** 判断是否为模型 */
 export type IsModel<T> = T extends IModel<infer U, infer V> ? true : false;
 /** 判断是否为数组 */
-type IsArray<T> = T extends readonly any[] ? true : false
+export type IsArray<T> = T extends readonly any[] ? true : false
 /** 兼容只读和普通数组 */
-type AnyArray<T = any> = T[] | readonly T[]
+export type AnyArray<T = any> = T[] | readonly T[]
 /** 判断某项是否可选 */
 type IsOptional<T> =
   T extends { optional: infer O } ?
@@ -71,6 +71,8 @@ export interface MapItem {
   set?: (this: any, val: any) => void
   /** 枚举值，支持enum推导 */
   enum?: Record<string, string | number | EnumItem> | AnyArray<EnumListItem>
+  /** Zod schema，用于自定义校验规则（需先调用 Model.usePlugin(ZodPlugin(z)) 注册） */
+  schema?: any
 }
 
 /** 模型定义Map */
@@ -155,34 +157,6 @@ export type PrimitiveType<T, R = false> =
   T extends new (...args: any[]) => any ? SafeInstanceType<T> :  // 自定义Model
   any
 
-export type EnumItem = {
-  key?: string
-  value?: any
-  label?: any
-}
-export type EnumListItem = {
-  key: string
-  value?: any
-  label?: any
-}
-
-export type MapEnumItem<T, V = false> =
-  T extends AnyArray<infer C> ? ValueTypeFromSingleInit<C> :
-  T extends Record<string, infer C>
-    ? V extends true
-      ? ValueTypeFromSingleInit<C>
-      : keyof T
-    : never
-
-export type MapEnum<T, O = null, R = false> =
-  O extends null
-    ? MapEnumItem<T>
-    : O extends MapItem
-      ? IsArray<MapType<O, R>> extends true
-        ? MapEnumItem<T, true>[]
-        : MapEnumItem<T, true>
-      : never
-
 type ExtractParseOrConvert<T, R> =
   T extends IModel<any, any, any> ? never :
   R extends true
@@ -251,37 +225,6 @@ export type MapToResult<T extends ModelMap> =
       IsOptional<T[K]> extends true ? (IsReadonly<T[K]> extends true ? never : ExtractKey<T[K], K>) : never
     ]?: MapType<T[K], true>
   }
-
-/** 获取含有枚举的字段名 */
-export type EnumKeys<T> = {
-  [K in keyof T as T[K] extends { enum: any } ? K : never]: T[K]
-}
-
-/** 枚举类型（对象形式） */
-export type EnumType<
-  T extends EnumInit<K, V>,
-  K extends keyof T = keyof T,
-  V extends EnumValue = ValueTypeFromSingleInit<T[K], K>,
-> = IEnum<T, K, V> & NativeEnumMembers<T, K, V>;
-
-/** 枚举类型（数组形式） */
-export type EnumList<
-  A extends AnyArray<Record<string, any>>,
-  // @ts-expect-error: ArrayToMap
-  Map extends EnumInit<K, V> = ArrayToMap<A>,
-  K extends keyof Map = keyof Map,
-  V extends EnumValue = ValueTypeFromSingleInit<Map[K], K>,
-> = IEnum<Map, K, V> & NativeEnumMembers<Map, K, V>;
-
-/** 枚举方法返回类型 */
-export type ReturnEnum<T> =
-  T extends { enum: infer E }
-    ? E extends AnyArray<Record<string, any>>
-      ? EnumList<E>
-      : E extends Record<string, any>
-        ? EnumType<E>
-        : never
-    : never;
 
 export type DeepPartial<T, Depth extends number = 3> =
   [Depth] extends [never]

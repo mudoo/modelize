@@ -199,15 +199,14 @@ const OmittedModel = UserBaseModel.omitExtends(['name'], {
   age: { key: 'user_age', model: Number },
 });
 ```
-
 ### 枚举类型
 更多用法请参考：[enum-plus](https://github.com/shijistar/enum-plus)
 
 ```typescript
-import Model from '../src/model'
+import { Model, EnumPlugin } from 'modelize'
 import { Enum } from 'enum-plus'
 
-Model.useEnum(Enum)
+Model.usePlugin(EnumPlugin(Enum))
 
 const UserModel = Model.define({
   status: {
@@ -248,6 +247,180 @@ const UserModel = Model.define({
   debug: true,  // 仅对此模型开启调试
   strict: true, // 仅对此模型开启严格模式
 });
+```
+
+### 数据校验（Zod 集成）
+
+支持以非强依赖的方式集成 [Zod](https://zod.dev) 作为校验引擎，提供整体校验、单字段校验能力。Zod 为可选依赖，未安装时不影响其他功能。
+
+#### 安装 Zod（可选）
+
+```bash
+npm install zod
+```
+
+#### 注册
+
+```typescript
+import { z } from 'zod';
+import { Model, ZodPlugin } from 'modelize';
+
+Model.usePlugin(ZodPlugin(z));
+```
+
+#### 定义 schema
+
+支持两种方式：
+
+- **自动推导**：根据 `model` 自动映射 Zod schema（如 `String` → `z.string()`）
+- **自定义覆盖**：通过 `schema` 字段指定更精确的校验规则
+
+```typescript
+const UserModel = Model.define({
+  name: { model: String, schema: z.string().min(2).max(20) },
+  email: { model: String, schema: z.string().email() },
+  age: { model: Number, schema: z.number().min(0).max(150) },
+  tags: [String],                                    // 自动推导: z.array(z.string())
+  nickname: { model: String, optional: true },       // 自动推导: z.string().optional().nullable()
+});
+```
+
+自动推导映射规则：
+
+| model 定义 | 推导的 Zod Schema |
+|---|---|
+| `String` | `z.string()` |
+| `Number` | `z.number()` |
+| `Boolean` | `z.boolean()` |
+| `Date` | `z.coerce.date()` |
+| `Array` / `[Type]` | `z.array(...)` |
+| `Object` | `z.record(z.string(), z.any())` |
+| 嵌套 Model | 递归 `z.object(...)` |
+| `optional: true` | 外层包裹 `.optional().nullable()` |
+
+#### 校验数据
+
+```typescript
+const user = UserModel.parse(rawData);
+
+// 整体校验
+const result = UserModel.validate(user);
+// { success: false, errors: [{ field: 'email', message: 'Invalid email', code: 'invalid_string' }] }
+
+// 单字段校验
+const fieldResult = UserModel.validateField(user, 'email');
+// { success: false, errors: [{ field: 'email', message: 'Invalid email' }] }
+
+// 仅校验指定字段（适合表单逐字段校验）
+UserModel.validate(user, { fields: ['name', 'email'] });
+
+// 遇到首个错误即停止
+UserModel.validate(user, { abortEarly: true });
+```
+
+#### 获取 schema（可复用）
+
+```typescript
+const schema = UserModel.schema;
+
+// 可直接用于 API 路由校验
+app.post('/users', (req, res) => {
+  const result = schema.safeParse(req.body);
+  // ...
+});
+
+// 可组合使用 Zod 原生能力
+const CreateUserSchema = schema.extend({ password: z.string().min(8) });
+const UpdateUserSchema = schema.partial();
+```
+
+#### 与 Strict 模式联动
+
+当字段配置了 `schema` 时，Strict/Debug 模式下 `parse()` 会自动使用 Zod schema 校验（替代默认的 `checkType`），提供更精确的错误信息：
+
+```typescript
+Model.strict = true;
+
+const UserModel = Model.define({
+  email: { model: String, schema: z.string().email() },
+});
+
+UserModel.parse({ email: 'not-email' });
+// TypeError: [modelize] Validation failed for field "email": Invalid email
+```
+
+### 表单校验规则生成
+
+`toFormRules()` 方法将模型定义转换为 Element UI / Ant Design / Naive UI 等基于 async-validator 的表单校验规则。无需 Zod 也可生成基础规则，注册 Zod 后自动增强。
+
+```typescript
+const UserModel = Model.define({
+  name: { model: String, schema: z.string().min(2).max(20) },
+  email: { model: String, schema: z.string().email() },
+  age: { model: Number, schema: z.number().min(0).max(150) },
+  nickname: { model: String, optional: true },
+});
+
+// 生成规则
+const rules = UserModel.toFormRules();
+// {
+//   name: [
+//     { required: true, message: 'name is required', trigger: 'blur' },
+//     { type: 'string', message: 'name must be a valid string', trigger: 'blur' },
+//     { trigger: 'blur', validator: fn }  -- Zod schema 校验
+//   ],
+//   email: [ ... ],
+//   age: [ ... ],
+//   nickname: [  -- optional 字段无 required 规则
+//     { type: 'string', ... },
+//     { trigger: 'blur', validator: fn }
+//   ],
+// }
+```
+
+#### 在 Element UI 中使用
+
+```html
+<template>
+  <el-form :model="form" :rules="rules">
+    <el-form-item label="姓名" prop="name">
+      <el-input v-model="form.name" />
+    </el-form-item>
+    <el-form-item label="邮箱" prop="email">
+      <el-input v-model="form.email" />
+    </el-form-item>
+  </el-form>
+</template>
+
+<script setup>
+const rules = UserModel.toFormRules({ trigger: 'blur' });
+</script>
+```
+
+#### 在 Ant Design 中使用
+
+```tsx
+<Form rules={UserModel.toFormRules({ trigger: 'change' })}>
+  <Form.Item name="name" label="姓名">
+    <Input />
+  </Form.Item>
+</Form>
+```
+
+#### 配置选项
+
+```typescript
+// 自定义触发方式
+UserModel.toFormRules({ trigger: 'change' });
+
+// 自定义必填提示（模板字符串，{field} 替换为字段名）
+UserModel.toFormRules({ requiredMessage: '{field}不能为空' });
+
+// 自定义必填提示（函数）
+UserModel.toFormRules({ requiredMessage: (field) => `请输入${field}` });
+
+// 仅生成指定字段的规则
+UserModel.toFormRules({ fields: ['name', 'email'] });
 ```
 
 ## 模型方法
@@ -317,6 +490,7 @@ const omittedRaw = UserModel.omit(user, ['tags'], true);
 | `get` | `Function` | Getter 函数 |
 | `set` | `Function` | Setter 函数 |
 | `enum` | `Object \| Array` | 枚举值定义 |
+| `schema` | `ZodType` | Zod schema，用于自定义校验规则（需先调用 `Model.useZod(z)` 注册） |
 
 ### 模型选项
 
