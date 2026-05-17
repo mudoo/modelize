@@ -1,4 +1,4 @@
-import { MapItem } from './types'
+import { MapItem, Simplify } from './types'
 import { removeEmptyValues } from './utils'
 
 type JSONOptions = {
@@ -13,10 +13,10 @@ export function JSONField<K extends string>(key: K, options?: JSONOptions): {
   parse(val: Record<string, any> | string): any
   convert(val: Record<string, any>): string
 }
-export function JSONField<const M extends MapItem>(attrs: M, options?: JSONOptions): M & {
+export function JSONField<const M extends MapItem>(attrs: M, options?: JSONOptions): Simplify<M & {
   parse(val: Record<string, any> | string): any
   convert(val: Record<string, any>): string
-}
+}>
 /**
  * 将字符串转为JSON对象
  * @param attrs 字段名/配置
@@ -51,10 +51,10 @@ export function splitField<K extends string>(key: K, splitter?: string): {
   parse(val: string[] | string): string[]
   convert(val: string[] | string): string
 }
-export function splitField<const M extends MapItem>(attrs: MapItem, splitter?: string): M & {
+export function splitField<const M extends MapItem>(attrs: MapItem, splitter?: string): Simplify<M & {
   parse(val: string[] | string): string[]
   convert(val: string[] | string): string
-}
+}>
 /**
  * 将字符串转为数组
  * @param attrs 字段名/配置
@@ -82,10 +82,10 @@ export function bool2intField<K extends string>(key: K, splitter?: string): {
   parse(val: boolean | number): boolean
   convert(val: boolean | number): 1 | 0
 }
-export function bool2intField<const M extends MapItem>(attrs: MapItem, splitter?: string): M & {
+export function bool2intField<const M extends MapItem>(attrs: MapItem, splitter?: string): Simplify<M & {
   parse(val: boolean | number): boolean
   convert(val: boolean | number): 1 | 0
-}
+}>
 /**
  * 将布尔值转为1/0
  * @param attrs 字段名/配置

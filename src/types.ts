@@ -31,6 +31,9 @@ export type IsReadonly<T> =
     T extends { set: (...args: any) => void } ? false : true
   : false;
 
+/** 简化/合并交叉类型属性提示 */
+export type Simplify<T> = { [K in keyof T]: T[K] } & {}
+
 /** 宽化类型 */
 type Widen<T> =
   T extends string ? string :
@@ -181,7 +184,7 @@ export type MapType<T, R = false> =
   : ExtractParseOrConvert<T, R>;
 
 /** MapToType: 自动推导Map类型 */
-export type MapToType<T extends ModelMap> =
+export type MapToType<T extends ModelMap> = Simplify<
   {
     readonly [K in keyof T as
       IsOptional<T[K]> extends true ? never : (IsReadonly<T[K]> extends true ? K : never)
@@ -199,6 +202,7 @@ export type MapToType<T extends ModelMap> =
       IsOptional<T[K]> extends true ? (IsReadonly<T[K]> extends true ? never : K) : never
     ]?: MapType<T[K]>
   }
+>
 
 export type ExtractKey<T, K> =
   T extends { key: infer C extends PropertyKey } ? C :
@@ -207,7 +211,7 @@ export type ExtractKey<T, K> =
   never
 
 /** MapToResult: 自动推导Map数据类型 */
-export type MapToResult<T extends ModelMap> =
+export type MapToResult<T extends ModelMap> = Simplify<
   {
     readonly [K in keyof T as
       IsOptional<T[K]> extends true ? never : (IsReadonly<T[K]> extends true ? ExtractKey<T[K], K> : never)
@@ -225,6 +229,7 @@ export type MapToResult<T extends ModelMap> =
       IsOptional<T[K]> extends true ? (IsReadonly<T[K]> extends true ? never : ExtractKey<T[K], K>) : never
     ]?: MapType<T[K], true>
   }
+>
 
 export type DeepPartial<T, Depth extends number = 3> =
   [Depth] extends [never]

@@ -12,6 +12,7 @@ import type {
   ModelMap,
   ModelOption,
   ParseOption,
+  Simplify,
 } from './types'
 import {
   checkType,
@@ -124,7 +125,7 @@ export class Model<T extends ModelMap, D extends MapToType<T> = MapToType<T>, S 
     keys: K[],
     map: M,
     opt?: ModelOption
-  ): Model<Omit<Pick<T, K>, keyof M> & M>
+  ): Model<Simplify<Omit<Pick<T, K>, keyof M> & M>>
 
   /**
    * 继承模型
@@ -132,7 +133,7 @@ export class Model<T extends ModelMap, D extends MapToType<T> = MapToType<T>, S 
    * @param opt 模型选项
    * @returns 返回新的模型实例
    */
-  extends<const M extends ModelMap>(map: M, opt?: ModelOption): Model<Omit<T, keyof M> & M>
+  extends<const M extends ModelMap>(map: M, opt?: ModelOption): Model<Simplify<Omit<T, keyof M> & M>>
   extends<K extends keyof T, const M extends ModelMap> (
     keysOrMap: K[] | M,
     mapOrOpt?: M | ModelOption,
@@ -171,7 +172,7 @@ export class Model<T extends ModelMap, D extends MapToType<T> = MapToType<T>, S 
     keys: K[],
     map: M,
     opt?: ModelOption
-  ): Model<Omit<Pick<T, K>, keyof M> & M>
+  ): Model<Simplify<Omit<Pick<T, K>, keyof M> & M>>
 
   pickExtends<K extends keyof T, const M extends ModelMap> (keys: K[], map?: M, opt?: ModelOption): any {
     return createExtendedModel(this.constructor, this.map, this.option, {
@@ -201,7 +202,7 @@ export class Model<T extends ModelMap, D extends MapToType<T> = MapToType<T>, S 
     keys: K[] | K,
     map?: M,
     opt?: ModelOption
-  ): Model<Omit<T, K> & M>
+  ): Model<Simplify<Omit<T, K> & M>>
 
   omitExtends<K extends keyof T, const M extends ModelMap> (keys: K[] | K, map?: M, opt?: ModelOption): any {
     return createExtendedModel(this.constructor, this.map, this.option, {
@@ -233,8 +234,8 @@ export class Model<T extends ModelMap, D extends MapToType<T> = MapToType<T>, S 
    * @param options 操作选项
    * @returns
    */
-  parse<R extends D & { $model: Model<T> }> (data: ModelData = {}, options?: ParseOption): R {
-    const target = {} as R
+  parse (data: ModelData = {}, options?: ParseOption): D & { $model: Model<T> } {
+    const target = {} as D & { $model: Model<T> }
 
     // 支持getter/setter
     this.accessorEntries.forEach(([key, mapItem]) => {
@@ -265,7 +266,7 @@ export class Model<T extends ModelMap, D extends MapToType<T> = MapToType<T>, S 
    * @param options 操作选项
    * @returns
    */
-  parseList (list: ModelData[], options?: ParseOption): D[] {
+  parseList (list: ModelData[], options?: ParseOption): (D & { $model: Model<T> })[] {
     if (!list || !list.length) return []
     return list.map((item) => this.parse(item, options))
   }
